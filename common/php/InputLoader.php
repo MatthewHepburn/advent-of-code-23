@@ -6,8 +6,24 @@ class InputLoader
 
     public function getAsString() : string
     {
-        $filename = getenv('AOC_EXAMPLE_MODE') ? 'exampleInput.txt' : 'input.txt';
-        return file_get_contents($this->dir . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . $filename);
+        $isExample = !! getenv('AOC_EXAMPLE_MODE');
+
+        $filename = $isExample ? 'exampleInput.txt' : 'input.txt';
+        $dir = $this->dir . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR;
+
+        // Some problems have different example input for parts A and B:
+        $standardFilePath = $dir . $filename;
+        if (!$isExample || file_exists($standardFilePath)) {
+            return file_get_contents($standardFilePath);
+        } else {
+            $callScript = ($_SERVER['SCRIPT_FILENAME']);
+            $filename = match ($callScript) {
+                'solveA.php' => 'exampleInputA.txt',
+                'solveB.php' => 'exampleInputB.txt',
+                default => throw new Exception('Unexpected name for call script')
+            };
+            return file_get_contents($dir . $filename);
+        }
     }
 
     /**
