@@ -6,7 +6,7 @@ require_once __DIR__ . '/common.php';
 $logger = new Logger();
 
 $allowedRedCubes = 12;
-$allowedGreenCubes = 14;
+$allowedGreenCubes = 13;
 $allowedBlueCubes = 14;
 
 /** @var Game[] $games */
