@@ -9,9 +9,16 @@ use Logger;
 
 require_once __DIR__ . '/../../common/php/AdjacenyGenerator2D.php';
 require_once __DIR__ . '/../../common/php/Logger.php';
-require_once __DIR__ . '/common.php';
+require_once __DIR__ . '/../../common/php/InputLoader.php';
 
-function extractNumber(array $schematic, AdjacenyGenerator2D $adjacenyGenerator, int $i, int $j): ?int
+final readonly class PartNumberInstance {
+    public function __construct(
+        public string $position,
+        public int $partNumber
+    ) {}
+}
+
+function extractNumber(array $schematic, AdjacenyGenerator2D $adjacenyGenerator, int $i, int $j): ?PartNumberInstance
 {
     $thisChar = $schematic[$i][$j];
     if (!ctype_digit($thisChar)) {
@@ -31,6 +38,9 @@ function extractNumber(array $schematic, AdjacenyGenerator2D $adjacenyGenerator,
         [$i, $j] = $nextPos;
     }
 
+    // Record our start point to uniquely identify this instance of this part number
+    $startPos = "$i,$j";
+
     // Now read our digits left to right
     $digits = [];
     while (true) {
@@ -47,14 +57,14 @@ function extractNumber(array $schematic, AdjacenyGenerator2D $adjacenyGenerator,
     }
 
     $digitString = implode('', $digits);
-    return (int) $digitString;
+    return new PartNumberInstance($startPos, (int) $digitString);
 }
 
 $logger = new Logger();
 
 $schematic = (new InputLoader(__DIR__))->getAsCharArray();
 
-$numbersSeen = [];
+$partNumbersByStartPos = [];
 $adjacencyGenerator = new AdjacenyGenerator2D(0, 0, count($schematic) - 1, count($schematic[0]) - 1, true);
 for ($i = 0; $i < count($schematic); $i++) {
     for ($j = 0; $j < count($schematic[$i]); $j++) {
@@ -65,9 +75,9 @@ for ($i = 0; $i < count($schematic); $i++) {
             foreach ($adjacencyGenerator->getAdjacent($i, $j) as [$adjI, $adjJ]) {
                 $maybeNumber = extractNumber($schematic, $adjacencyGenerator, $adjI, $adjJ);
                 if ($maybeNumber) {
-                    if (!isset($numbersSeen[$maybeNumber])) {
-                        $logger->log("Found new part number: $maybeNumber");
-                        $numbersSeen[$maybeNumber] = true;
+                    if (!isset($partNumbersByStartPos[$maybeNumber->position])) {
+                        $logger->log("Found new part number: {$maybeNumber->partNumber} @ {$maybeNumber->position}");
+                        $partNumbersByStartPos[$maybeNumber->position] = $maybeNumber->partNumber;
                     }
                 }
             }
@@ -75,4 +85,4 @@ for ($i = 0; $i < count($schematic); $i++) {
     }
 }
 
-echo array_sum(array_keys($numbersSeen)) . "\n";
+echo array_sum($partNumbersByStartPos) . "\n";
