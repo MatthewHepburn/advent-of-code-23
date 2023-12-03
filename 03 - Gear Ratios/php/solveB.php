@@ -16,25 +16,31 @@ $logger = new Logger();
 
 $schematic = (new InputLoader(__DIR__))->getAsCharArray();
 
-$partNumbersByStartPos = [];
+$gearRatios = [];
 $adjacencyGenerator = new AdjacenyGenerator2D(0, 0, count($schematic) - 1, count($schematic[0]) - 1, true);
 for ($i = 0; $i < count($schematic); $i++) {
     for ($j = 0; $j < count($schematic[$i]); $j++) {
         $char = $schematic[$i][$j];
-        if (preg_match('/[^.0-9]/', $char)) {
-            // We have a symbol! Do we have any adjacent numbers
-            $logger->log("Found Symbol: '$char' @ $i,$j");
+        if ($char === '*') {
+            $logger->log("Found possible gear: '$char' @ $i,$j");
+            $adjacentParts = [];
             foreach ($adjacencyGenerator->getAdjacent($i, $j) as [$adjI, $adjJ]) {
                 $maybeNumber = extractNumber($schematic, $adjacencyGenerator, $adjI, $adjJ);
                 if ($maybeNumber) {
-                    if (!isset($partNumbersByStartPos[$maybeNumber->position])) {
+                    if (!isset($adjacentParts[$maybeNumber->position])) {
                         $logger->log("Found new part number: {$maybeNumber->partNumber} @ {$maybeNumber->position}");
-                        $partNumbersByStartPos[$maybeNumber->position] = $maybeNumber->partNumber;
+                        $adjacentParts[$maybeNumber->position] = $maybeNumber->partNumber;
                     }
                 }
+            }
+            if (count($adjacentParts) === 2) {
+                $logger->log("Identified gear @$i, $j");
+                $gearRatios[] = array_product($adjacentParts);
+            } else {
+                $logger->log("Not a gear @$i, $j");
             }
         }
     }
 }
 
-echo array_sum($partNumbersByStartPos) . "\n";
+echo array_sum($gearRatios) . "\n";
