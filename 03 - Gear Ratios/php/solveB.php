@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace AoC\Three;
 
-use Aoc\Common\AdjacenyGenerator2D;
+use AoC\Common\AdjacenyGenerator2D;
 use InputLoader;
 use Logger;
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace Aoc\Common;
+namespace AoC\Common;
 
 require_once __DIR__ . '/StandardLib.php';
 

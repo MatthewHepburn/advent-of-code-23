@@ -1,6 +1,6 @@
 <?php
 
-namespace Aoc\Common;
+namespace AoC\Common;
 
 function filter(array $arr, callable $callable = null): array
 {

@@ -18,4 +18,4 @@ $ints = array_map(function (string $x) use ($logger) {
 }, $digitOnlyStrings);
 
 
-echo array_sum($ints);
+echo array_sum($ints) . "\n";
