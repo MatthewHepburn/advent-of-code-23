@@ -1,5 +1,10 @@
 <?php
 
+namespace AoC\One;
+
+use AoC\Common\InputLoader;
+use AoC\Common\Logger;
+
 require_once __DIR__ . '/../../common/php/InputLoader.php';
 require_once __DIR__ . '/../../common/php/Logger.php';
 

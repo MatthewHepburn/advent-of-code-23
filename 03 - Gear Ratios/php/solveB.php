@@ -4,8 +4,8 @@ declare(strict_types=1);
 namespace AoC\Three;
 
 use AoC\Common\AdjacenyGenerator2D;
-use InputLoader;
-use Logger;
+use AoC\Common\InputLoader;
+use AoC\Common\Logger;
 
 require_once __DIR__ . '/../../common/php/AdjacenyGenerator2D.php';
 require_once __DIR__ . '/../../common/php/Logger.php';

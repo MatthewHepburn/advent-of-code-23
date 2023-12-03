@@ -1,5 +1,7 @@
 #!/bin/zsh
 
+set -e
+
 for dir in [0-9][0-9]*/**/php
 do
     echo "$dir A:"

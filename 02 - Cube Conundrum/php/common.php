@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+namespace AoC\Two;
+
+use AoC\Common\InputLoader;
+use Exception;
+
 require_once __DIR__ . '/../../common/php/InputLoader.php';
 
 enum Colour {

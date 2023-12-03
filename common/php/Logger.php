@@ -1,5 +1,7 @@
 <?php
 
+namespace AoC\Common;
+
 class Logger
 {
     private bool $silentMode = true;

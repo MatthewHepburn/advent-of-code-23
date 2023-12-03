@@ -1,5 +1,7 @@
 <?php
 
+namespace AoC\Common;
+
 class InputLoader
 {
     public function __construct(private string $dir) {}
