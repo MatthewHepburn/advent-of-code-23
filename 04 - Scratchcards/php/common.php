@@ -7,13 +7,28 @@ use AoC\Common\InputLoader;
 
 require_once __DIR__ . '/../../common/php/InputLoader.php';
 
-final readonly class Game
+final class Card
 {
+    private ?int $matchCount = null;
+
     public function __construct(
-        public int $gameNumber,
-        public array $winningNumbers,
-        public array $yourNumbers
+        public readonly int $cardNumber,
+        public readonly array $winningNumbers,
+        public readonly array $yourNumbers
     )  {}
+
+    public function getMatchCount(): int {
+        if (!isset($this->matchCount)) {
+            $matchCount = 0;
+            foreach ($this->yourNumbers as $yourNumber) {
+                if (in_array($yourNumber, $this->winningNumbers)) {
+                    $matchCount += 1;
+                }
+            }
+            $this->matchCount = $matchCount;
+        }
+        return $this->matchCount;
+    }
 
     public static function fromInputLine(string $line): self
     {
@@ -28,20 +43,20 @@ final readonly class Game
         $winningNumbers = array_map(fn(string $x) => (int) $x, $winningNumberStrings);
         $yourNumbers = array_map(fn(string $x) => (int) $x, $yourNumberStrings);
 
-        return new Game((int) $gameNumber, $winningNumbers, $yourNumbers);
+        return new Card((int) $gameNumber, $winningNumbers, $yourNumbers);
     }
 }
 
 /**
- * @return Game[]
+ * @return Card[]
  */
-function getGames(): array
+function getCards(): array
 {
     $lines = (new InputLoader(__DIR__))->getAsStrings();
 
     $games = [];
     foreach ($lines as $line) {
-        $games[]= Game::fromInputLine($line);
+        $games[]= Card::fromInputLine($line);
     }
 
     return $games;
