@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../common/php/Logger.php';
 
 $logger = new Logger();
 
-$seeds = getSeeds();
+$seeds = getSimpleSeeds();
 $logger->log("Seeds: " . json_encode($seeds));
 
 $maps = getMaps();
@@ -25,7 +25,7 @@ $locations = [];
 foreach ($seeds as $seed) {
     $value = $seed;
     foreach ($maps as $map) {
-        $newValue = $map->mapsTo($value);
+        $newValue = $map->mapsToForwards($value);
         $logger->log("Mapped $map->from #$value to $map->to #$newValue");
         $value = $newValue;
     }

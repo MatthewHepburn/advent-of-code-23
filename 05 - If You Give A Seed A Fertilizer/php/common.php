@@ -14,10 +14,19 @@ final readonly class RangeMapping {
         public int $length
     ) {}
 
-    public function mapsTo(int $source): ?int {
+    public function mapsToForwards(int $source): ?int {
         if ($source >= $this->sourceStart && $source < $this->sourceStart + $this->length) {
             // source is in our range:
             return $this->destStart + ($source - $this->sourceStart);
+        }
+
+        return null;
+    }
+
+    public function mapsToBackwards(int $dest): ?int {
+        if ($dest >= $this->destStart && $dest < $this->destStart + $this->length) {
+            // dest is in our range:
+            return $this->sourceStart + ($dest - $this->destStart);
         }
 
         return null;
@@ -43,9 +52,9 @@ final readonly class Map {
         public array $rangeMaps
     ) {}
 
-    public function mapsTo(int $source): int {
+    public function mapsToForwards(int $source): int {
         foreach ($this->rangeMaps as $rangeMap) {
-            $result = $rangeMap->mapsTo($source);
+            $result = $rangeMap->mapsToForwards($source);
             if ($result !== null) {
                 return $result;
             }
@@ -53,6 +62,18 @@ final readonly class Map {
 
         // No result, map to the source value
         return $source;
+    }
+
+    public function mapsToBackwards(int $dest): int {
+        foreach ($this->rangeMaps as $rangeMap) {
+            $result = $rangeMap->mapsToBackwards($dest);
+            if ($result !== null) {
+                return $result;
+            }
+        }
+
+        // No result, map to the dest value
+        return $dest;
     }
 
     public static function fromInput(string $inputPart): self
@@ -69,11 +90,41 @@ final readonly class Map {
     }
 }
 
-function getSeeds(): array
+final readonly class SeedRange
+{
+    public int $end;
+    public function __construct(
+        public int $start,
+        public int $length
+    )
+    {
+        $this->end = $this->start + $this->length;
+    }
+
+    public function inRange(int $seed): bool {
+        return $seed >= $this->start && $seed < $this->end;
+    }
+}
+
+function getSimpleSeeds(): array
 {
     $seedsLine = (new InputLoader(__DIR__))->getAsStrings()[0];
     $seedsString = str_replace('seeds: ', '', $seedsLine);
     return array_map(fn(string $x) => (int) $x, explode(' ', $seedsString));
+}
+
+/**
+ * @return SeedRange[]
+ */
+function getSeedRanges(): array
+{
+    $output = [];
+    $input = getSimpleSeeds();
+    foreach (array_chunk($input, 2) as [$start, $length]) {
+        $output[] = new SeedRange($start, $length);
+    }
+
+    return $output;
 }
 
 /**
