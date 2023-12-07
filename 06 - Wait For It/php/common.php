@@ -35,18 +35,3 @@ function extractInts(string $str): array {
     }
     return $output;
 }
-
-/**
- * @return RaceRecord[];
- */
-function getRaceRecords(): array {
-    [$timeString, $distanceString] = (new InputLoader(__DIR__))->getAsStrings();
-    $times = extractInts($timeString);
-    $distances = extractInts($distanceString);
-
-    $output = [];
-    for ($i = 0; $i < count($times); $i++) {
-        $output[] = new RaceRecord($times[$i], $distances[$i]);
-    }
-    return $output;
-}

@@ -3,12 +3,28 @@ declare(strict_types=1);
 
 namespace AoC\Six;
 
+use AoC\Common\InputLoader;
 use AoC\Common\Logger;
 
 require_once __DIR__ . '/common.php';
 require_once __DIR__ . '/../../common/php/Logger.php';
 
 $logger = new Logger();
+
+/**
+ * @return RaceRecord[];
+ */
+function getRaceRecords(): array {
+    [$timeString, $distanceString] = (new InputLoader(__DIR__))->getAsStrings();
+    $times = extractInts($timeString);
+    $distances = extractInts($distanceString);
+
+    $output = [];
+    for ($i = 0; $i < count($times); $i++) {
+        $output[] = new RaceRecord($times[$i], $distances[$i]);
+    }
+    return $output;
+}
 
 $raceRecord = getRaceRecords();
 $winningApproachesByRace = [];
