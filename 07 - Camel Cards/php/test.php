@@ -11,7 +11,11 @@ $cases = [
     '33222' => HandType::FullHouse,
     '3332A' => HandType::ThreeOfAKind,
     '44445' => HandType::FourOfAKind,
-    '34432' => HandType::TwoPair
+    '34432' => HandType::TwoPair,
+    '2222?' => HandType::FiveOfAKind,
+    '222??' => HandType::FiveOfAKind,
+    '22???' => HandType::FiveOfAKind,
+    '2223?' => HandType::FourOfAKind,
 ];
 
 foreach ($cases as $handString => $expectedHandType) {
@@ -24,6 +28,7 @@ foreach ($cases as $handString => $expectedHandType) {
 }
 
 $cases = [
+    '?' => 1,
     '2' => 2,
     '3' => 3,
     '4' => 4,
