@@ -129,8 +129,6 @@ final readonly class Hand {
             return HandType::fromCount($valueCount);
         }
 
-        echo "before = " . json_encode($valueCount) . "\n";
-
         // Change the Jokers to match the card with the highest count
         $jokerCount = $valueCount['Joker'];
         unset($valueCount['Joker']);
@@ -141,8 +139,6 @@ final readonly class Hand {
         }
 
         $valueCount[$highestFace] += $jokerCount;
-
-        echo "after = " . json_encode($valueCount) . "\n";
 
         return HandType::fromCount($valueCount);
     }
