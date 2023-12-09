@@ -14,11 +14,17 @@ Enum Direction: string {
 }
 
 final readonly class Node {
+    public bool $isANode;
+    public bool $isZNode;
+
     public function __construct(
         public string $name,
         private string $left,
         private string $right
-    ) {}
+    ) {
+        $this->isANode = str_ends_with($this->name, 'A');
+        $this->isZNode = str_ends_with($this->name, 'Z');
+    }
 
     public function getNodeNameInDirection(Direction $direction) {
         return match ($direction) {
