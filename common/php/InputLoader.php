@@ -50,6 +50,20 @@ class InputLoader
     }
 
     /**
+     * @return int[][]
+     */
+    public function getAsIntArrays() : array
+    {
+        $output = [];
+        foreach ($this->getAsStrings() as $string) {
+            $parts = explode(' ', $string);
+            $output[]= array_map(fn(string $x) => (int) $x, $parts);
+        }
+
+        return $output;
+    }
+
+    /**
      * @return string[][]
      */
     public function getAsCharArray() : array
