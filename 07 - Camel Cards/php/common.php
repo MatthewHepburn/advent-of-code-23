@@ -49,8 +49,6 @@ Enum HandType: int {
 }
 
 final readonly class Hand {
-    // Strength is used to compare hands, it includes the strength of the hand and the strength of the individual cards
-    public int $strength;
     public HandType $handType;
 
     /**
@@ -61,7 +59,22 @@ final readonly class Hand {
         public readonly int $bid
     ) {
         $this->handType = $this->calculateHandType();
-        $this->strength = $this->calculateStrength($this->handType);
+    }
+
+    public static function fromLine(string $line): self
+    {
+        [$cardsString, $bidString] = explode(' ', $line);
+        $cards = [];
+        foreach (str_split($cardsString) as $card) {
+            $cards[] = Face::from($card);
+        }
+
+        $hand = new Hand($cards, (int) $bidString);
+        if ((string) $hand !== $line) {
+            throw new \Exception('Bad parse for line ' . $line);
+        }
+
+        return $hand;
     }
 
     public function getCardAt(int $i): Face
@@ -75,17 +88,7 @@ final readonly class Hand {
         foreach ($this->hand as $card) {
             $output .= $card->value;
         }
-        return "$output ({$this->handType->name}) {$this->bid}";
-    }
-
-    private function calculateStrength(HandType $handType): int
-    {
-        return $handType->value * 10000000000
-            + $this->hand[0]->getStrength() * 100000000
-            + $this->hand[1]->getStrength() * 1000000
-            + $this->hand[2]->getStrength() * 10000
-            + $this->hand[3]->getStrength() * 100
-            + $this->hand[4]->getStrength();
+        return "$output $this->bid";
     }
 
     private function calculateHandType(): HandType
@@ -128,13 +131,7 @@ function getHands(): array
     $lines = (new InputLoader(__DIR__))->getAsStrings();
     $output = [];
     foreach ($lines as $line) {
-        [$cardsString, $bidString] = explode(' ', $line);
-        $cards = [];
-        foreach (str_split($cardsString) as $card) {
-            $cards[] = Face::from($card);
-        }
-
-        $output[]= new Hand($cards, (int) $bidString);
+        $output []= Hand::fromLine($line);
     }
 
     return $output;

@@ -33,9 +33,13 @@ $winnings = 0;
 $rank = 1;
 foreach ($hands as $hand) {
     $wins = $hand->bid * $rank;
-    $logger->log($hand . " => " . $hand->strength . ", wins {$hand->bid} x $rank = " . $wins);
+    $logger->log($hand . " =>  wins {$hand->bid} x $rank = " . $wins);
     $winnings += $wins;
     $rank += 1;
+}
+
+if ($winnings === 251977354) {
+    throw new \Exception('Still getting the incorrect answer!');
 }
 
 echo $winnings . "\n";

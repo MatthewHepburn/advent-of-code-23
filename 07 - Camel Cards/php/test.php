@@ -45,3 +45,5 @@ foreach ($cases as $card => $expectedStr) {
         throw new \Exception("Expected strength $expectedStr, got {$face->getStrength()}");
     }
 }
+
+echo "tests passed\n";
