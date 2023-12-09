@@ -24,7 +24,6 @@ foreach ($cases as $handString => $expectedHandType) {
 }
 
 $cases = [
-    'A' => 1,
     '2' => 2,
     '3' => 3,
     '4' => 4,
@@ -36,7 +35,8 @@ $cases = [
     'T' => 10,
     'J' => 11,
     'Q' => 12,
-    'K' => 13
+    'K' => 13,
+    'A' => 14
 ];
 
 foreach ($cases as $card => $expectedStr) {

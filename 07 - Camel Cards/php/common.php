@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../common/php/StandardLib.php';
 
 Enum Face: string
 {
+    case Ace = 'A';
     case King = 'K';
     case Queen = 'Q';
     case Jack = 'J';
@@ -24,15 +25,14 @@ Enum Face: string
     case Four = '4';
     case Three = '3';
     case Two = '2';
-    case Ace = 'A';
 
     public function getStrength(): int {
         return match ($this) {
+            self::Ace => 14,
             self::King => 13,
             self::Queen => 12,
             self::Jack => 11,
             self::Ten => 10,
-            self::Ace => 1,
             default => (int) $this->value
         };
     }
