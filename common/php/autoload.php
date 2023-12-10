@@ -16,7 +16,7 @@ spl_autoload_register(function ($class) {
        return;
    }
 
-   $file = preg_replace('/\\+/', DIRECTORY_SEPARATOR, $other) . '.php';
+   $file = preg_replace('/[\\\]+/', DIRECTORY_SEPARATOR, $other) . '.php';
 
    include_once __DIR__ . DIRECTORY_SEPARATOR . $file;
 });

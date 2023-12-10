@@ -6,6 +6,12 @@ namespace AoC\Ten;
 use AoC\Common\Direction2D;
 use AoC\Common\InputLoader;
 use AoC\Common\Point;
+use AoC\Common\Search\MapInterface;
+use AoC\Common\Search\NodeInterface;
+use AoC\Common\Search\NullCost;
+use AoC\Common\Search\RouteInterface;
+use AoC\Common\Search\ScalarCost;
+use AoC\Common\Search\Vertex;
 use function AoC\Common\filter;
 
 require_once __DIR__ . '/../../common/php/autoload.php';
@@ -13,24 +19,27 @@ require_once __DIR__ . '/../../common/php/autoload.php';
 final class PipeData
 {
     public ?int $minDistanceFromStart = null;
+    public ?RouteInterface $bestRoute = null;
     public bool $enclosed = true;
 
-    public function recordNewDistance(int $distance): bool
+    public function recordNewRoute(int $distance, RouteInterface $route): bool
     {
         if ($this->minDistanceFromStart === null) {
             $this->minDistanceFromStart = $distance;
+            $this->bestRoute = $route;
             return true;
         }
         $newValue = min($distance, $this->minDistanceFromStart);
         if ($newValue < $this->minDistanceFromStart) {
             $this->minDistanceFromStart = $newValue;
+            $this->bestRoute = $route;
             return true;
         }
         return false;
     }
 }
 
-final readonly class Pipe
+final readonly class Pipe implements NodeInterface
 {
     /** @var Point[] */
     private array $acceptedPoints;
@@ -91,9 +100,28 @@ final readonly class Pipe
     {
         return ! $this->isGround() && $this->pipeData->minDistanceFromStart !== null;
     }
+
+    public function isImprovement(RouteInterface $route): bool
+    {
+        $cost = $route->getTotalCost();
+        if ($cost instanceof NullCost) {
+            $value = 0;
+        } else if ($cost instanceof ScalarCost) {
+            $value = $cost->value;
+        } else {
+            throw new \Exception('Encountered unexpected Cost class');
+        }
+
+        return $this->pipeData->recordNewRoute($value, $route);
+    }
+
+    public function getBestRoute(): ?RouteInterface
+    {
+        return $this->pipeData->bestRoute;
+    }
 }
 
-final readonly class PipeMaze
+final readonly class PipeMaze implements MapInterface
 {
     /**
      * @param Pipe[][] $pipes
@@ -176,6 +204,17 @@ final readonly class PipeMaze
         }
 
         return $output;
+    }
+
+    public function getVerticesFrom(NodeInterface $node): array
+    {
+        if (!$node instanceof Pipe) {
+            throw new \Exception('Encountered unexpected Node class');
+        }
+
+        $nodes = $this->getConnectedPipes($node);
+        $unitCost = new ScalarCost(1);
+        return array_map(fn(Pipe $pipe) => new Vertex($node, $pipe, $unitCost), $nodes);
     }
 }
 

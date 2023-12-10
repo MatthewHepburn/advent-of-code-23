@@ -2,7 +2,10 @@
 
 namespace AoC\Common\Search;
 
-readonly class Route implements RouteInterface
+/**
+ * When determining the path taken is necessary
+ */
+readonly class TrackedRoute implements RouteInterface
 {
     public function __construct(
         protected array $vertices,
@@ -22,7 +25,7 @@ readonly class Route implements RouteInterface
     public function withVertex(VertexInterface $vertex): RouteInterface
     {
         return new self(
-            array_merge($this->vertices,  [$vertex]),
+            array_merge($this->vertices, [$vertex]),
             $this->totalCost->add($vertex->getCost())
         );
     }
