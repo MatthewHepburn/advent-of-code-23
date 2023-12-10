@@ -2,18 +2,28 @@
 
 namespace AoC\Common;;
 
-class Point
+readonly class Point
 {
-    public function __construct(private int $x, private int $y) {}
+    /**
+     * Assume we're working with coordinates in a typical 2D array, with top left at (y=0, x=0)
+     * @param int $y
+     * @param int $x
+     */
+    public function __construct(public int $y, public int $x) {}
 
-    public function getX(): int
+    public function getInDirection(Direction2D $direction): Point
     {
-        return $this->x;
+        return match ($direction) {
+            Direction2D::Up => new Point($this->x, $this->y - 1),
+            Direction2D::Down => new Point($this->x, $this->y + 1),
+            Direction2D::Left => new Point($this->x - 1, $this->y),
+            Direction2D::Right => new Point($this->x + 1, $this->y)
+        };
     }
 
-    public function getY(): int
+    public function equals(Point $point): bool
     {
-        return $this->y;
+        return $point->x === $this->x && $point->y === $this->y;
     }
 
     public function __toString(): string
