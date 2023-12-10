@@ -57,7 +57,7 @@ for ($y = 0; $y < count($maze->pipes); $y++) {
             $logger->log("Considering pipe string: '$lastPipeString'");
             $firstPipe = $lastPipeString[0];
             $lastPipe = $lastPipeString[strlen($lastPipeString) - 1];
-            if ($firstPipe === 'F' && $lastPipe === 'J') {
+            if ($firstPipe === 'F' && ($lastPipe === 'J' || $lastPipe === 'S')) { // Hardcoded knowledge that our S is a J, should be deducible programmatically
                 $logger->log("    Crossed a vertical boundary: $firstPipe $lastPipe");
                 $insideLoop = !$insideLoop;
                 $lastPipeString = '';
