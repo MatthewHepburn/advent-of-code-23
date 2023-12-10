@@ -29,7 +29,7 @@ class Problem
             foreach ($nodes as $node) {
                 $frontier = array_merge($frontier, $this->map->getVerticesFrom($node));
             }
-            echo "Frontier size = " . count($frontier) . "\n";
+
             $frontier = $this->sortFrontier($frontier);
             foreach ($frontier as $vertex) {
                 $start = $vertex->getStart();
