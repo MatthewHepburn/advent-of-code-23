@@ -7,7 +7,7 @@ namespace AoC\Two;
 use AoC\Common\InputLoader;
 use Exception;
 
-require_once __DIR__ . '/../../common/php/InputLoader.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 
 enum Colour {
     case RED;

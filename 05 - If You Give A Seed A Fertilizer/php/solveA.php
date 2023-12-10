@@ -6,7 +6,7 @@ namespace AoC\Five;
 use AoC\Common\Logger;
 
 require_once __DIR__ . '/common.php';
-require_once __DIR__ . '/../../common/php/Logger.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 
 $logger = new Logger();
 

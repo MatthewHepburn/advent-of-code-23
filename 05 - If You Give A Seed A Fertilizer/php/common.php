@@ -5,7 +5,7 @@ namespace AoC\Five;
 
 use AoC\Common\InputLoader;
 
-require_once __DIR__ . '/../../common/php/InputLoader.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 
 final readonly class RangeMapping {
     public function __construct(

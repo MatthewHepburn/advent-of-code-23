@@ -8,10 +8,7 @@ use AoC\Common\InputLoader;
 use AoC\Common\Point;
 use function AoC\Common\filter;
 
-require_once __DIR__ . '/../../common/php/InputLoader.php';
-require_once __DIR__ . '/../../common/php/Point.php';
-require_once __DIR__ . '/../../common/php/Direction2D.php';
-require_once __DIR__ . '/../../common/php/StandardLib.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 
 final class PipeData
 {

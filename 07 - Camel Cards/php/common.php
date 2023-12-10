@@ -6,8 +6,7 @@ namespace AoC\Seven;
 use AoC\Common\InputLoader;
 use function AoC\Common\filter;
 
-require_once __DIR__ . '/../../common/php/InputLoader.php';
-require_once __DIR__ . '/../../common/php/StandardLib.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 
 
 Enum Face: string

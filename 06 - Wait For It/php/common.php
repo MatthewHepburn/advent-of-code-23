@@ -5,7 +5,7 @@ namespace AoC\Six;
 
 use AoC\Common\InputLoader;
 
-require_once __DIR__ . '/../../common/php/InputLoader.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 
 final readonly class RaceRecord {
     public function __construct(

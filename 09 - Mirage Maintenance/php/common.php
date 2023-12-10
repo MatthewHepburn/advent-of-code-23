@@ -5,7 +5,7 @@ namespace AoC\Nine;
 
 use AoC\Common\InputLoader;
 
-require_once __DIR__ . '/../../common/php/InputLoader.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 
 /**
  * @param int[] $sequence

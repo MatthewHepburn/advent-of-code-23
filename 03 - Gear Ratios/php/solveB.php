@@ -7,9 +7,7 @@ use AoC\Common\AdjacenyGenerator2D;
 use AoC\Common\InputLoader;
 use AoC\Common\Logger;
 
-require_once __DIR__ . '/../../common/php/AdjacenyGenerator2D.php';
-require_once __DIR__ . '/../../common/php/Logger.php';
-require_once __DIR__ . '/../../common/php/InputLoader.php';
+require_once __DIR__ . '/../../common/php/autoload.php';
 require_once __DIR__ . '/common.php';
 
 $logger = new Logger();
