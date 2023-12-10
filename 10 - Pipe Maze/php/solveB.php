@@ -37,59 +37,58 @@ while ($improved) {
     $distance += 1;
 }
 
-/** @var Ground[][] $ground */
-$groundArray = [];
-/** @var Ground[] $groundFrontier */
-$groundFrontier = [];
 for ($y = 0; $y < count($maze->pipes); $y++) {
-    $groundRow = [];
-    for ($x = 0; $x < count($maze->pipes[$y]); $x++) {
+    // Look left to right
+    $lastPipeString = '';
+    $insideLoop = false;
+    for ($x = 0; $x < count($maze->pipes[0]); $x++) {
         $pipe = $maze->pipes[$y][$x];
-        $isExit = $pipe->isGround() && $maze->isEdge($pipe->getPosition());
-        $ground = new Ground($pipe->getPosition(), !$pipe->isGround(), $isExit);
-        $groundRow []= $ground;
-        if ($isExit) {
-            $groundFrontier[]= $ground;
+
+        $partOfLoop = $pipe->isPartOfLoop();
+        if ($pipe->symbol === '|' && $partOfLoop) {
+            $insideLoop = !$insideLoop;
+            $lastPipeString = '';
+        } elseif ($partOfLoop) {
+            $lastPipeString .= $pipe->symbol;
         }
-    }
 
-    $groundArray[]= $groundRow;
-}
-
-$groundMaze = new GroundMaze($groundArray);
-
-$distance = 0;
-$improved = true;
-while ($improved) {
-    $improved = false;
-    $newFrontier = [];
-    foreach ($groundFrontier as $startGround) {
-        $logger->log("Considering ground at {$ground->getPosition()}");
-        $wasImprovement = $startGround->groundData->recordNewDistance($distance);
-        if ($wasImprovement) {
-            $logger->log("  Improvement - got to ground at {$startGround->getPosition()} in $distance steps");
-            $improved = true;
-            // Add connected ground to the new frontier
-            $connectedGrounds = $groundMaze->getConnectedGround($startGround);
-            $logger->log("    Found " . count($connectedGrounds) . " connections from ground at {$startGround->getPosition()}");
-            foreach ($connectedGrounds as $connectedGround) {
-                $newFrontier[]= $connectedGround;
+        if ($partOfLoop && strlen($lastPipeString) > 1 && $pipe->symbol !== '-' ) {
+            // We might have crossed a boundary, depending on the sequence of pipes we've seen
+            $logger->log("Considering pipe string: '$lastPipeString'");
+            $firstPipe = $lastPipeString[0];
+            $lastPipe = $lastPipeString[strlen($lastPipeString) - 1];
+            if ($firstPipe === 'F' && $lastPipe === 'J') {
+                $logger->log("    Crossed a vertical boundary: $firstPipe $lastPipe");
+                $insideLoop = !$insideLoop;
+                $lastPipeString = '';
+            } elseif ($firstPipe === 'L' && $lastPipe === "7") {
+                $logger->log("    Crossed a vertical boundary: $firstPipe $lastPipe");
+                $insideLoop = !$insideLoop;
+                $lastPipeString = '';
+            } else {
+                $logger->log("    Didn't cross a vertical boundary: $firstPipe $lastPipe");
+                $lastPipeString = '';
             }
         }
+
+        if ($partOfLoop) {
+            $pipe->pipeData->enclosed = false;
+        } else {
+            $pipe->pipeData->enclosed = $insideLoop;
+        }
     }
-    $groundFrontier = $newFrontier;
-    $distance += 1;
 }
 
-$logger->log($groundMaze->getEnclosureDiagram());
-
 $enclosedGroundCount = 0;
-foreach ($groundMaze->ground as $groundRow) {
-    foreach ($groundRow as $ground) {
-        if ($ground->isEnclosed()) {
+for ($y = 0; $y < count($maze->pipes); $y++) {
+    for ($x = 0; $x < count($maze->pipes[$y]); $x++) {
+        $pipe = $maze->pipes[$y][$x];
+        if ($pipe->pipeData->enclosed) {
             $enclosedGroundCount += 1;
         }
     }
 }
+
+$logger->log($maze->getEnclosureDiagram());
 
 echo $enclosedGroundCount . "\n";

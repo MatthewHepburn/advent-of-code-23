@@ -16,6 +16,7 @@ require_once __DIR__ . '/../../common/php/StandardLib.php';
 final class PipeData
 {
     public ?int $minDistanceFromStart = null;
+    public bool $enclosed = true;
 
     public function recordNewDistance(int $distance): bool
     {
@@ -39,7 +40,7 @@ final readonly class Pipe
     public bool $isStart;
     public PipeData $pipeData;
 
-    public function __construct(private Point $position, private string $symbol) {
+    public function __construct(private Point $position, public string $symbol) {
         $this->pipeData = new PipeData();
         $acceptedDirections = match ($this->symbol){
             '.' => [], // The null Pipe,
@@ -53,6 +54,15 @@ final readonly class Pipe
         };
         $this->acceptedPoints = array_map(fn(Direction2D $d) => $this->position->getInDirection($d), $acceptedDirections);
         $this->isStart = $this->symbol === 'S';
+    }
+
+    public function getEnclosureSymbol()
+    {
+        if (!$this->isGround()) {
+            return $this->symbol;
+        }
+
+        return $this->pipeData->enclosed ? 'I' : 'O';
     }
 
     public function isGround(): bool
@@ -79,73 +89,13 @@ final readonly class Pipe
     {
         return $this->symbol;
     }
-}
 
-final class GroundData
-{
-    public ?int $minDistanceFromExit = null;
-
-    public function recordNewDistance(int $distance): bool
+    public function isPartOfLoop(): bool
     {
-        if ($this->minDistanceFromExit === null) {
-            $this->minDistanceFromExit = $distance;
-            return true;
-        }
-        $newValue = min($distance, $this->minDistanceFromExit);
-        if ($newValue < $this->minDistanceFromExit) {
-            $this->minDistanceFromExit = $newValue;
-            return true;
-        }
-        return false;
+        return ! $this->isGround() && $this->pipeData->minDistanceFromStart !== null;
     }
 }
 
-final readonly class Ground
-{
-    /** @var Point[] */
-    private array $acceptedPoints;
-    public GroundData $groundData;
-
-    public function __construct(private Point $position, private bool $isPipe, public bool $isExit) {
-        $this->groundData = new GroundData();
-        $acceptedDirections = match ($this->isPipe){
-            false => [Direction2D::Up, Direction2D::Left, Direction2D::Right, Direction2D::Down],
-            true => [] // Pipe, AKA null ground
-        };
-        $this->acceptedPoints = array_map(fn(Direction2D $d) => $this->position->getInDirection($d), $acceptedDirections);
-    }
-
-    public function getEnclosureSymbol()
-    {
-        if ($this->isPipe) {
-            return '+';
-        }
-        if ($this->isEnclosed()) {
-            return 'I';
-        }
-        return 'O';
-    }
-
-    public function isEnclosed(): bool
-    {
-        return !$this->isPipe && $this->groundData->minDistanceFromExit === null;
-    }
-
-    public function getPosition(): Point
-    {
-        return $this->position;
-    }
-
-    public function acceptsConnectionFrom(Point $point): bool
-    {
-        foreach ($this->acceptedPoints as $acceptedPoint) {
-            if ($acceptedPoint->equals($point)) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
 final readonly class PipeMaze
 {
     /**
@@ -219,61 +169,18 @@ final readonly class PipeMaze
 
         return $output;
     }
-}
-
-final readonly class GroundMaze
-{
-    /**
-     * @param Ground[][] $ground
-     */
-    public function __construct(
-        public array $ground
-    ) {}
-
-    /**
-     * @param Ground $pipe
-     *
-     * @return Ground[]
-     */
-    public function getConnectedGround(Ground $ground): array
-    {
-        $startPos = $ground->getPosition();
-        $possibleDirections = Direction2D::cases();
-        $possiblePositions = array_map(fn(Direction2D $d) => $startPos->getInDirection($d), $possibleDirections);
-        $inBoundsPositions = filter($possiblePositions, fn(Point $p) => $this->isInBounds($p));
-        echo "Starting from $startPos, these are in bounds: " . implode(' ', $inBoundsPositions) . "\n";
-        $connectablePositions = filter($inBoundsPositions, fn(Point $p) => $ground->acceptsConnectionFrom($p));
-        $candidateGround = array_map(fn(Point $p) => $this->ground[$p->y][$p->x], $connectablePositions);
-        return filter($candidateGround, fn(Ground $candidate) => $candidate->acceptsConnectionFrom($startPos));
-    }
-
-    public function isInBounds(Point $point): bool {
-        if ($point->x < 0 || $point->y < 0) {
-            return false;
-        }
-        if ($point->x >= count($this->ground[0])) {
-            return false;
-        }
-
-        if ($point->y >= count(($this->ground))) {
-            return false;
-        }
-
-        return true;
-    }
 
     public function getEnclosureDiagram(): string
     {
         $output = '';
-        foreach ($this->ground as $row) {
-            $markings = array_map(fn(Ground $g) => $g->getEnclosureSymbol(), $row);
-            $output .= implode('', $markings) . "\n";
+        foreach ($this->pipes as $row) {
+            $distances = array_map(fn(Pipe $p) => $p->getEnclosureSymbol(), $row);
+            $output .= implode('', $distances) . "\n";
         }
 
         return $output;
     }
 }
-
 
 function getMaze(): PipeMaze
 {
