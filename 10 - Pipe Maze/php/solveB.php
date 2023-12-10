@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace AoC\Ten;
 
-use AoC\Common\Direction2D;
 use AoC\Common\Logger;
 use AoC\Common\Point;
 
@@ -46,14 +45,10 @@ for ($y = 0; $y < count($maze->pipes); $y++) {
     $groundRow = [];
     for ($x = 0; $x < count($maze->pipes[$y]); $x++) {
         $pipe = $maze->pipes[$y][$x];
-        $isExit = $maze->isEdge($pipe->getPosition());
-        $ground = new Ground($pipe->getPosition(), $pipe->symbol, $isExit);
+        $isExit = $pipe->isGround() && $maze->isEdge($pipe->getPosition());
+        $ground = new Ground($pipe->getPosition(), !$pipe->isGround(), $isExit);
         $groundRow []= $ground;
         if ($isExit) {
-            $tilePositions = [];
-            if ($x == 0) {
-                $til[] = Direction2D::
-            }
             $groundFrontier[]= $ground;
         }
     }
@@ -69,7 +64,7 @@ while ($improved) {
     $improved = false;
     $newFrontier = [];
     foreach ($groundFrontier as $startGround) {
-        $logger->log("Considering {$startGround} at {$ground->getPosition()}");
+        $logger->log("Considering ground at {$ground->getPosition()}");
         $wasImprovement = $startGround->groundData->recordNewDistance($distance);
         if ($wasImprovement) {
             $logger->log("  Improvement - got to ground at {$startGround->getPosition()} in $distance steps");

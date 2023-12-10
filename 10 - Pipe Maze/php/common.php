@@ -39,7 +39,7 @@ final readonly class Pipe
     public bool $isStart;
     public PipeData $pipeData;
 
-    public function __construct(private Point $position, public string $symbol) {
+    public function __construct(private Point $position, private string $symbol) {
         $this->pipeData = new PipeData();
         $acceptedDirections = match ($this->symbol){
             '.' => [], // The null Pipe,
@@ -81,81 +81,44 @@ final readonly class Pipe
     }
 }
 
-enum TilePosition {
-    case TopLeft;
-    case TopRight;
-    case Top;
-    case Left;
-    case Right;
-    case Bottom;
-    case BottomLeft;
-    case BottomRight;
-}
-
 final class GroundData
 {
-    public function __construct(
-        private bool $isOpenGround
-    ) {
+    public ?int $minDistanceFromExit = null;
 
-    }
-
-    public array $minDistancesFromExit = [
-        Direction2D::Up->name => null,
-        Direction2D::Down->name => null,
-        Direction2D::Right->name => null,
-        Direction2D::Left->name => null,
-    ];
-
-    public function recordNewDistance(int $distance, Direction2D $side): bool
+    public function recordNewDistance(int $distance): bool
     {
-        if ($this->minDistancesFromExit[$side->name] === null) {
-            $this->minDistancesFromExit[$side->name] = $distance;
+        if ($this->minDistanceFromExit === null) {
+            $this->minDistanceFromExit = $distance;
             return true;
         }
-        $newValue = min($distance, $this->minDistancesFromExit[$side->name]);
-        if ($newValue < $this->minDistancesFromExit[$side->name]) {
-            $this->minDistancesFromExit[$side->name] = $newValue;
+        $newValue = min($distance, $this->minDistanceFromExit);
+        if ($newValue < $this->minDistanceFromExit) {
+            $this->minDistanceFromExit = $newValue;
             return true;
         }
         return false;
     }
-
-    public function isReachable(): bool
-    {
-        foreach ($this->minDistancesFromExit as $distance) {
-            if ($distance !== null) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-}
-
-final readonly class GroundPosition
-{
-    public function __construct(
-        public Ground $ground,
-        public Direction2D $side,
-    ) {}
 }
 
 final readonly class Ground
 {
+    /** @var Point[] */
+    private array $acceptedPoints;
     public GroundData $groundData;
-    public bool $isPipe;
 
-    public function __construct(private Point $position, private string $symbol, public bool $isExit) {
+    public function __construct(private Point $position, private bool $isPipe, public bool $isExit) {
         $this->groundData = new GroundData();
-
-        $this->isPipe = $this->symbol !== '.';
+        $acceptedDirections = match ($this->isPipe){
+            false => [Direction2D::Up, Direction2D::Left, Direction2D::Right, Direction2D::Down],
+            true => [] // Pipe, AKA null ground
+        };
+        $this->acceptedPoints = array_map(fn(Direction2D $d) => $this->position->getInDirection($d), $acceptedDirections);
     }
 
     public function getEnclosureSymbol()
     {
         if ($this->isPipe) {
-            return $this->symbol;
+            return '+';
         }
         if ($this->isEnclosed()) {
             return 'I';
@@ -181,11 +144,6 @@ final readonly class Ground
             }
         }
         return false;
-    }
-
-    public function __toString(): string
-    {
-        return $this->symbol;
     }
 }
 final readonly class PipeMaze
