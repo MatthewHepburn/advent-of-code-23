@@ -14,10 +14,10 @@ readonly class Point
     public function getInDirection(Direction2D $direction): Point
     {
         return match ($direction) {
-            Direction2D::Up => new Point($this->x, $this->y - 1),
-            Direction2D::Down => new Point($this->x, $this->y + 1),
-            Direction2D::Left => new Point($this->x - 1, $this->y),
-            Direction2D::Right => new Point($this->x + 1, $this->y)
+            Direction2D::Up => new Point($this->y - 1, $this->x),
+            Direction2D::Down => new Point($this->y + 1, $this->x),
+            Direction2D::Left => new Point($this->y, $this->x - 1),
+            Direction2D::Right => new Point($this->y, $this->x + 1)
         };
     }
 

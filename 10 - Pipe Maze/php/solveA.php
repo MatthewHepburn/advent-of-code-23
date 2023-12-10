@@ -12,7 +12,7 @@ $logger = new Logger();
 
 $maze = getMaze();
 
-$maze->print();
+$logger->log($maze->getPipeDiagram());
 
 /** @var Pipe[] $frontier */
 $frontier = [$maze->startPipe];
@@ -22,18 +22,21 @@ while ($improved) {
     $improved = false;
     $newFrontier = [];
     foreach ($frontier as $startPipe) {
+        $logger->log("Considering $startPipe at {$startPipe->getPosition()}");
         $wasImprovement = $startPipe->pipeData->recordNewDistance($distance);
         if ($wasImprovement) {
+            $logger->log("  Improvement - got to $startPipe at {$startPipe->getPosition()} in $distance steps");
             $improved = true;
             // Add connected pipes to the new frontier
-            $connectedPipes = $maze->getConnectedPipes($startPipe);
-            $logger->log("Found " . count($connectedPipes) . " connections from $startPipe at {$startPipe->getPosition()}");
-            foreach ($maze->getConnectedPipes($startPipe) as $connectedPipe) {
+            $connectedPipes = $maze->getConnectedPipes($startPipe, $logger);
+            $logger->log("    Found " . count($connectedPipes) . " connections from $startPipe at {$startPipe->getPosition()}: " . implode(' ', $connectedPipes));
+            foreach ($connectedPipes as $connectedPipe) {
                 $newFrontier[]= $connectedPipe;
             }
         }
     }
     $frontier = $newFrontier;
+    $distance += 1;
 }
 
 $furthestPipeSteps = 0;
@@ -46,5 +49,7 @@ for ($y = 0; $y < count($maze->pipes); $y++) {
         $furthestPipeSteps = max($furthestPipeSteps, $pipe->pipeData->minDistanceFromStart);
     }
 }
+
+$logger->log($maze->getDistanceDiagram());
 
 echo $furthestPipeSteps . "\n";

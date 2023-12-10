@@ -5,6 +5,7 @@ namespace AoC\Ten;
 
 use AoC\Common\Direction2D;
 use AoC\Common\InputLoader;
+use AoC\Common\Logger;
 use AoC\Common\Point;
 use function AoC\Common\filter;
 
@@ -91,12 +92,14 @@ final readonly class Maze
      *
      * @return Pipe[];
      */
-    public function getConnectedPipes(Pipe $pipe): array
+    public function getConnectedPipes(Pipe $pipe, Logger $logger): array
     {
         $startPos = $pipe->getPosition();
         $possibleDirections = Direction2D::cases();
         $possiblePositions = array_map(fn(Direction2D $d) => $startPos->getInDirection($d), $possibleDirections);
+//        $logger->log("Found " . count($possiblePositions) . " possible positions");
         $inBoundsPositions = filter($possiblePositions, fn(Point $p) => $this->isInBounds($p));
+//        $logger->log("Found " . count($inBoundsPositions) . " in bounds positions");
         $connectablePositions = filter($inBoundsPositions, fn(Point $p) => $pipe->acceptsConnectionFrom($p));
         $candidatePipes = array_map(fn(Point $p) => $this->pipes[$p->y][$p->x], $connectablePositions);
         return filter($candidatePipes, fn(Pipe $candidate) => $candidate->acceptsConnectionFrom($startPos));
@@ -110,14 +113,28 @@ final readonly class Maze
             return false;
         }
 
-        return $point->y >= count($this->pipes);
+        return $point->y < count($this->pipes);
     }
 
-    public function print(): void
+    public function getPipeDiagram(): string
     {
+        $output = '';
         foreach ($this->pipes as $row) {
-            echo implode('', $row) . "\n";
+            $output .= implode('', $row) . "\n";
         }
+
+        return $output;
+    }
+
+    public function getDistanceDiagram(): string
+    {
+        $output = '';
+        foreach ($this->pipes as $row) {
+            $distances = array_map(fn(Pipe $p) => $p->pipeData->minDistanceFromStart ?? '.', $row);
+            $output .= implode('', $distances) . "\n";
+        }
+
+        return $output;
     }
 }
 
