@@ -30,4 +30,11 @@ readonly class Point
     {
         return "({$this->x}, {$this->y})";
     }
+
+    public function manhattanDistance(Point $destPoint): int
+    {
+        $xDist = abs($this->x - $destPoint->x);
+        $yDist = abs($this->y - $destPoint->y);
+        return $xDist + $yDist;
+    }
 }
