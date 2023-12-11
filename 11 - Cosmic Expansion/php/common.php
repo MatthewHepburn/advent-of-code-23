@@ -21,15 +21,10 @@ final class StarMap {
 
     public function expand(): void {
         // First, expand our rows
+        $emptyRows = $this->getEmptyRows();
         $newMap = [];
-        foreach ($this->map as $row) {
-            $isEmpty = true;
-            foreach ($row as $point) {
-                if ($point !== '.') {
-                    $isEmpty = false;
-                    break;
-                }
-            }
+        foreach ($this->map as $rowNumber => $row) {
+            $isEmpty = isset($emptyRows[$rowNumber]);
             if ($isEmpty) {
                 for ($i = 0; $i < $this->expansionConstant; $i++) {
                     $newMap[]= $row;
@@ -42,22 +37,7 @@ final class StarMap {
         $this->map = $newMap;
 
         // Now, expand our columns
-        // First, a pass to identify columns to be expanded
-        $emptyColumns = [];
-        for ($columnNumber = 0; $columnNumber < count($this->map[0]); $columnNumber++) {
-            $isEmpty = true;
-            for ($rowNumber = 0; $rowNumber < count($this->map); $rowNumber++) {
-                if ($this->map[$rowNumber][$columnNumber] !== '.') {
-                    $isEmpty = false;
-                    break;
-                }
-            }
-            if ($isEmpty) {
-                $emptyColumns[$columnNumber]= true;
-            }
-        }
-
-        // Then a pass to do the actual expansion
+        $emptyColumns = $this->getEmptyColumns();
         $newMap = [];
         foreach ($this->map as $row) {
             $newRow = [];
@@ -76,6 +56,43 @@ final class StarMap {
         }
 
         $this->map = $newMap;
+    }
+
+    public function getEmptyRows(): array
+    {
+        $rows = [];
+        foreach ($this->map as $rowNumber => $row) {
+            $isEmpty = true;
+            foreach ($row as $point) {
+                if ($point !== '.') {
+                    $isEmpty = false;
+                    break;
+                }
+            }
+            if ($isEmpty) {
+                $rows[$rowNumber] = true;
+            }
+        }
+
+        return $rows;
+    }
+
+    public function getEmptyColumns(): array
+    {
+        $emptyColumns = [];
+        for ($columnNumber = 0; $columnNumber < count($this->map[0]); $columnNumber++) {
+            $isEmpty = true;
+            for ($rowNumber = 0; $rowNumber < count($this->map); $rowNumber++) {
+                if ($this->map[$rowNumber][$columnNumber] !== '.') {
+                    $isEmpty = false;
+                    break;
+                }
+            }
+            if ($isEmpty) {
+                $emptyColumns[$columnNumber]= true;
+            }
+        }
+        return $emptyColumns;
     }
 
     /**
