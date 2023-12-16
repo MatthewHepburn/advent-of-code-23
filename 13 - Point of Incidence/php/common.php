@@ -22,19 +22,27 @@ final class MirrorMap
     /**
      * @return int[]
      */
-    public function findReflectionColumns(): array
+    public function findReflectionColumns(int $smudges = 0): array
     {
         $reflectionColumns = [];
         for ($i = 0; $i < count($this->points[0]) - 1; $i++) {
+            $smudgesLeft = $smudges;
             // Do we have a reflection around $i?
             for ($offset = 0; $i + $offset + 1 < count($this->points[0]) && $i - $offset >= 0; $offset++) {
                 for($j = 0; $j < count($this->points); $j++) {
                     if ($this->points[$j][$i - $offset] !== $this->points[$j][$i + 1 + $offset]) {
-                        continue 3;
+                        if ($smudgesLeft > 0) {
+                            // Use our smudge to account for the difference
+                            $smudgesLeft = $smudgesLeft - 1;
+                        } else {
+                            continue 3;
+                        }
                     }
                 }
             }
-            $reflectionColumns[]= $i + 1;
+            if ($smudgesLeft === 0) {
+                $reflectionColumns[]= $i + 1;
+            }
         }
 
         return $reflectionColumns;
@@ -43,10 +51,11 @@ final class MirrorMap
     /**
      * @return int[]
      */
-    public function findReflectionRows(): array
+    public function findReflectionRows(int $smudges = 0): array
     {
         $reflectionRows = [];
         for ($i = 0; $i < count($this->points) - 1; $i++) {
+            $smudgesLeft = $smudges;
             // Do we have a reflection around $i?
             for ($offset = 0; $i + $offset + 1 < count($this->points) && $i - $offset >= 0; $offset++) {
                 $topRow = $this->points[$i - $offset];
@@ -54,11 +63,18 @@ final class MirrorMap
 
                 for($j = 0; $j < count($topRow); $j++) {
                     if ($topRow[$j] !== $bottomRow[$j]) {
-                        continue 3;
+                        if ($smudgesLeft > 0) {
+                            // Use our smudge to account for the difference
+                            $smudgesLeft = $smudgesLeft - 1;
+                        } else {
+                            continue 3;
+                        }
                     }
                 }
             }
-            $reflectionRows[]= $i + 1;
+            if ($smudgesLeft === 0) {
+                $reflectionRows[]= $i + 1;
+            }
         }
 
         return $reflectionRows;
