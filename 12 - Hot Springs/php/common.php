@@ -57,7 +57,12 @@ final readonly class SpringRow {
             $newPossibles = [];
             foreach ($possibleStatuses as $possibleStatusPrefix) {
                 foreach ($options as $status) {
-                    $newPossibles[]= array_merge($possibleStatusPrefix, [$status]);
+                    $newPossible = array_merge($possibleStatusPrefix, [$status]);
+
+                    // Prune our possibles as we go to reduce the growth of our search space
+                    if ($this->isValidStatusSequencePrefix($newPossible)) {
+                        $newPossibles[]= $newPossible;
+                    }
                 }
             }
             $possibleStatuses = $newPossibles;
@@ -120,6 +125,28 @@ final readonly class SpringRow {
         }
 
         return $output;
+    }
+
+    /**
+     * @param SpringStatus[] $statusPrefix
+     *
+     * @return bool
+     */
+    private function isValidStatusSequencePrefix(array $statusPrefix): bool
+    {
+        $groupSizes = $this->getGroupSizes($statusPrefix);
+        if (count($groupSizes) > count($this->groups)) {
+            return false;
+        }
+
+        // Compare up to the second last group - last group could still grow
+        for ($i = 0; $i < count($groupSizes) - 1; $i++) {
+            if ($groupSizes[$i] !== $this->groups[$i]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
 
