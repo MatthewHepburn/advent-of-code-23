@@ -23,7 +23,17 @@ EOF, [], [5]],
 #####.##.
 ..##..###
 #....#..#
-EOF, [4], []]
+EOF, [4], []],
+    [<<<'EOF'
+....
+..##
+####
+EOF, [], [3]],
+    [<<<'EOF'
+..#.
+##.#
+####
+EOF, [], [1]]
 ];
 
 foreach ($cases as [$string,$expectedRows, $expectedColumns]) {
@@ -42,11 +52,11 @@ foreach ($cases as [$string,$expectedRows, $expectedColumns]) {
 
     $actualColumns = $map->findReflectionColumns();
     if (count($actualColumns) !== count($expectedColumns)) {
-        throw new \Exception('Column mismatch!');
+        throw new \Exception('Column mismatch! Expected ' . count($expectedColumns) . ' cols, got ' . count($actualColumns));
     }
     foreach ($actualColumns as $index => $value) {
         if ($expectedColumns[$index] !== $value) {
-            throw new \Exception("Got $value, expected {$expectedRows[$index]}");
+            throw new \Exception("Got $value, expected {$expectedColumns[$index]}");
         }
     }
 }
