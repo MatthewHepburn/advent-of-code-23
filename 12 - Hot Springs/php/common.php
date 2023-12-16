@@ -62,38 +62,32 @@ final class SpringRow {
                 SpringStatus::Good, SpringStatus::Bad => [$status],
                 SpringStatus::Unknown => [SpringStatus::Good, SpringStatus::Bad]
             };
-            $newPossibles = [];
+            $newPossiblesBySignature = [];
             foreach ($possibleStatuses as $arr) {
                 $possibleStatusPrefix = $arr['sequence'];
                 $weight = $arr['weight'];
                 foreach ($options as $status) {
                     $newPossible = array_merge($possibleStatusPrefix, [$status]);
 
+                    if (!$this->isValidStatusSequencePrefix($newPossible)) {
+                        continue;
+                    }
+
                     // Prune our possibles as we go to reduce the growth of our search space
-                    if ($this->isValidStatusSequencePrefix($newPossible)) {
-                        $newPossibles[]= [
+                    $signature = $this->getSequenceSignature($newPossible);
+                    if (isset($newPossiblesBySignature[$signature])) {
+                        // echo "Existing signature: $signature, has weight {$newPossiblesBySignature[$signature]['weight']}\n;";
+                        $newPossiblesBySignature[$signature]['weight'] += $weight;
+                    } else {
+                        // echo "New signature: $signature\n;";
+                        $newPossiblesBySignature[$signature] = [
                             'sequence' => $newPossible,
-                            'weight' => $weight
+                            'weight'   => $weight
                         ];
                     }
                 }
             }
-            $possibleStatuses = $newPossibles;
-
-            // Prune our possibility space
-            $bySignature = [];
-            foreach ($possibleStatuses as $arr) {
-                $sequence = $arr['sequence'];
-                $signature = $this->getSequenceSignature($sequence);
-                if (isset($bySignature[$signature])) {
-//                    echo "Existing signature: $signature, has weight {$bySignature[$signature]['weight']}\n;";
-                    $bySignature[$signature]['weight'] += 1;
-                } else {
-//                    echo "New signature: $signature\n;";
-                    $bySignature[$signature] = $arr;
-                }
-            }
-            $possibleStatuses = array_values($possibleStatuses);
+            $possibleStatuses = array_values($newPossiblesBySignature);
         }
 
         $total = 0;
