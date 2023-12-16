@@ -191,3 +191,16 @@ function getSpringRows(): array
 
     return array_map([SpringRow::class, 'fromLine'], $lines);
 }
+
+/**
+ * @return \Generator<SpringRow>
+ */
+function getSpringRowsUnfolded(): \Generator
+{
+    $lines = (new InputLoader(__DIR__))->getAsStrings();
+
+    foreach ($lines as $line) {
+        $row = SpringRow::fromLine($line)->unfold();
+        yield $row;
+    }
+}

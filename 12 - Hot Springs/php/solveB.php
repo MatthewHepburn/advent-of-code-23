@@ -10,10 +10,8 @@ require_once __DIR__ . '/../../common/php/autoload.php';
 
 $logger = new Logger();
 
-$rows = getSpringRows();
-$rows = array_map(fn(SpringRow $x) => $x->unfold(), $rows);
 $total = 0;
-foreach ($rows as $row) {
+foreach (getSpringRowsUnfolded() as $row) {
     $logger->log("Considering Row: " . $row);
     $candidates = $row->getCandidates();
     $logger->log("  Identified " . count($candidates) . " potential candidates");
