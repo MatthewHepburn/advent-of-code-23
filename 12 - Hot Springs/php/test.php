@@ -46,4 +46,17 @@ foreach ($cases as [$line,$expectedOptionCount]) {
     }
 }
 
+$cases = [
+    ['.# 1', '.#?.#?.#?.#?.# 1,1,1,1,1'],
+    ['???.### 1,1,3', '???.###????.###????.###????.###????.### 1,1,3,1,1,3,1,1,3,1,1,3,1,1,3']
+];
+
+foreach ($cases as [$line,$expectedUnfolding]) {
+    $springRow = SpringRow::fromLine($line);
+    $unfolded = $springRow->unfold();
+    if ($expectedUnfolding !== (string) $unfolded) {
+        throw new \Exception("Expected unfolding '$expectedUnfolding' for line '$line', got '$unfolded'");
+    }
+}
+
 echo "tests passed\n";

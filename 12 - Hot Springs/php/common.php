@@ -34,6 +34,25 @@ final readonly class SpringRow {
     }
 
     /**
+     * @param SpringRow[] $rows
+     *
+     * @return self
+     */
+    public static function fromRowParts(array $rows): self
+    {
+        $newStatuses = [];
+        $newGroups = [];
+        for ($i = 0; $i < count($rows); $i++) {
+            $join = $i !== 0 ? [SpringStatus::Unknown] : [];
+            $newStatuses = array_merge($newStatuses, $join, $rows[$i]->statuses);
+            $newGroups = array_merge($newGroups, $rows[$i]->groups);
+        }
+
+        return new self($newStatuses, $newGroups);
+
+    }
+
+    /**
      * @param SpringStatus[] $statuses
      *
      * @return self
@@ -96,6 +115,19 @@ final readonly class SpringRow {
         }
 
         return true;
+    }
+
+    public function unfold(): self
+    {
+        $newStatuses = [];
+        $newGroups = [];
+        for ($i = 0; $i < 5; $i++) {
+            $join = $i !== 0 ? [SpringStatus::Unknown] : [];
+            $newStatuses = array_merge($newStatuses, $join, $this->statuses);
+            $newGroups = array_merge($newGroups, $this->groups);
+        }
+
+        return new self($newStatuses, $newGroups);
     }
 
     /**
