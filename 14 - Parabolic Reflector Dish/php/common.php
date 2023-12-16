@@ -18,6 +18,14 @@ final class DishMap
         public array $points
     ) {}
 
+    public function cycle(): void
+    {
+        $this->tiltNorth();
+        $this->tiltWest();
+        $this->tiltSouth();
+        $this->tiltEast();
+    }
+
     public function getDiagram(): string
     {
         $output = '';
@@ -40,6 +48,20 @@ final class DishMap
         return $total;
     }
 
+    public function getSignature(): string
+    {
+        $hashInput = '';
+        foreach ($this->points as $i => $row) {
+            foreach ($row as $j => $value) {
+                if ($value === 'O') {
+                    $hashInput .= "($i,$j)";
+                }
+            }
+        }
+
+        return sha1($hashInput);
+    }
+
     public function tiltNorth(): void
     {
         $changed = true;
@@ -54,6 +76,57 @@ final class DishMap
                     }
                 }
 
+            }
+        }
+    }
+
+    public function tiltSouth(): void
+    {
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            for ($row = 1; $row < count($this->points); $row++) {
+                for ($column = 0; $column < count($this->points[0]); $column++) {
+                    if ($this->points[$row - 1][$column] === 'O' && $this->points[$row][$column] === '.') {
+                        $changed = true;
+                        $this->points[$row - 1][$column] = '.';
+                        $this->points[$row][$column] = 'O';
+                    }
+                }
+            }
+        }
+    }
+
+    public function tiltEast(): void
+    {
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            for ($row = 0; $row < count($this->points); $row++) {
+                for ($column = 1; $column < count($this->points[0]); $column++) {
+                    if ($this->points[$row][$column - 1] === 'O' && $this->points[$row][$column] === '.') {
+                        $changed = true;
+                        $this->points[$row][$column - 1] = '.';
+                        $this->points[$row][$column] = 'O';
+                    }
+                }
+            }
+        }
+    }
+
+    public function tiltWest(): void
+    {
+        $changed = true;
+        while ($changed) {
+            $changed = false;
+            for ($row = 0; $row < count($this->points); $row++) {
+                for ($column = 1; $column < count($this->points[0]); $column++) {
+                    if ($this->points[$row][$column - 1] === '.' && $this->points[$row][$column] === 'O') {
+                        $changed = true;
+                        $this->points[$row][$column - 1] = 'O';
+                        $this->points[$row][$column] = '.';
+                    }
+                }
             }
         }
     }
