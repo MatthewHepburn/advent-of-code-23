@@ -38,9 +38,7 @@ $cases = [
 
 foreach ($cases as [$line,$expectedOptionCount]) {
     $springRow = SpringRow::fromLine($line);
-    $candidates = $springRow->getCandidates();
-    $validCandidates = filter($candidates, fn(SpringRow $x) => $x->isSatisfied());
-    $actualOptionCount = count($validCandidates);
+    $actualOptionCount = $springRow->getOptionCount();
     if ($expectedOptionCount !== $actualOptionCount) {
         throw new \Exception("Expected $expectedOptionCount options, got $actualOptionCount for line '$line'");
     }

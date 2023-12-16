@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace AoC\Twelve;
 
 use AoC\Common\InputLoader;
+use function AoC\Common\filter;
 
 require_once __DIR__ . '/../../common/php/autoload.php';
 
@@ -13,15 +14,16 @@ enum SpringStatus: string {
     case Unknown = '?';
 }
 
-final readonly class SpringRow {
+final class SpringRow {
+    public int $weight = 1;
 
     /**
      * @param SpringStatus[] $statuses
      * @param int[] $groups
      */
     public function __construct(
-        public array $statuses,
-        public array $groups
+        public readonly array $statuses,
+        public readonly array $groups
     ) { }
 
     public static function fromLine(string $line): self
@@ -36,16 +38,7 @@ final readonly class SpringRow {
 
     public function getOptionCount(): int
     {
-        $candidates = $this->getCandidates();
-        $validCandidates = 0;
-        foreach ($candidates as $candidate) {
-            $valid = $candidate->isSatisfied();
-            if ($valid) {
-                $validCandidates += 1;
-            }
-        }
-
-        return $validCandidates;
+        return $this->getCandidates();
     }
 
     /**
@@ -58,32 +51,61 @@ final readonly class SpringRow {
         return new self($statuses, $this->groups);
     }
 
-    /**
-     * @return SpringRow[]
-     */
-    public function getCandidates(): array
+    public function getCandidates(): int
     {
-        $possibleStatuses = [[]];
+        $possibleStatuses = [[
+            'weight' => 1,
+            'sequence' => []
+        ]];
         foreach ($this->statuses as $status) {
             $options = match ($status) {
                 SpringStatus::Good, SpringStatus::Bad => [$status],
                 SpringStatus::Unknown => [SpringStatus::Good, SpringStatus::Bad]
             };
             $newPossibles = [];
-            foreach ($possibleStatuses as $possibleStatusPrefix) {
+            foreach ($possibleStatuses as $arr) {
+                $possibleStatusPrefix = $arr['sequence'];
+                $weight = $arr['weight'];
                 foreach ($options as $status) {
                     $newPossible = array_merge($possibleStatusPrefix, [$status]);
 
                     // Prune our possibles as we go to reduce the growth of our search space
                     if ($this->isValidStatusSequencePrefix($newPossible)) {
-                        $newPossibles[]= $newPossible;
+                        $newPossibles[]= [
+                            'sequence' => $newPossible,
+                            'weight' => $weight
+                        ];
                     }
                 }
             }
             $possibleStatuses = $newPossibles;
+
+            // Prune our possibility space
+            $bySignature = [];
+            foreach ($possibleStatuses as $arr) {
+                $sequence = $arr['sequence'];
+                $signature = $this->getSequenceSignature($sequence);
+                if (isset($bySignature[$signature])) {
+//                    echo "Existing signature: $signature, has weight {$bySignature[$signature]['weight']}\n;";
+                    $bySignature[$signature]['weight'] += 1;
+                } else {
+//                    echo "New signature: $signature\n;";
+                    $bySignature[$signature] = $arr;
+                }
+            }
+            $possibleStatuses = array_values($possibleStatuses);
         }
 
-        return array_map(fn(array $statuses) => $this->withStatuses($statuses), $possibleStatuses);
+        $total = 0;
+        foreach ($possibleStatuses as $arr) {
+            $finishedRow = $this->withStatuses($arr['sequence']);
+            $finishedRow->weight = $arr['weight'];
+            if ($finishedRow->isSatisfied()) {
+                $total += $arr['weight'];
+            }
+        }
+
+        return $total;
     }
 
     public function __toString(): string
@@ -175,6 +197,23 @@ final readonly class SpringRow {
         }
 
         return true;
+    }
+
+    /**
+     * @param SpringStatus[] $statusSequence
+     *
+     * @return string
+     */
+    private function getSequenceSignature(array $statusSequence): string
+    {
+        $brokenTotal = count(filter($statusSequence, fn(SpringStatus $x) => $x === SpringStatus::Bad));
+        $groups = $this->getGroupSizes($statusSequence);
+        $groupCount = count($groups);
+        $inGroup = ($statusSequence[count($statusSequence) - 1] ?? SpringStatus::Good) === SpringStatus::Bad;
+        $currentGroupSize = $inGroup ? ($groups[count($groups) - 1] ?? 0) : 0;
+
+        return "$brokenTotal-$groupCount-$currentGroupSize";
+
     }
 }
 
