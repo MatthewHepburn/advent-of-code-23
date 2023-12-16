@@ -79,48 +79,18 @@ final readonly class SpringRow {
 
     public function isSatisfied(): bool
     {
-        $inGroup = false;
-        $groupIndex = 0;
-        $currentGroupSizeLimit = null;
-        $currentGroupSize = null;
-        for ($i = 0; $i < count($this->statuses); $i++) {
-            $thisStatus = $this->statuses[$i];
-            switch ($thisStatus) {
-                case SpringStatus::Good:
-                    if ($inGroup) {
-                        // not anymore
-                        if ($currentGroupSize !== $currentGroupSizeLimit) {
-                            return false;
-                        }
-                        $inGroup = false;
-                        $groupIndex += 1;
-                        $currentGroupSize = null;
-                    }
-                    break;
-                case SpringStatus::Bad:
-                    if ($inGroup) {
-                        $currentGroupSize += 1;
-                    } else {
-                        $inGroup = true;
-                        $currentGroupSize = 1;
-                        $currentGroupSizeLimit = $this->groups[$groupIndex] ?? 0;
-                    }
-                    break;
-                default:
-                    throw new \Exception("Cannot validate row with unknown spring statuses");
-            }
+        $groupSizes = $this->getGroupSizes($this->statuses);
+        if (count($groupSizes) !== count($this->groups)) {
+            return false;
         }
 
-        // If we're still in a group at the end, make sure it's the right size
-        if ($inGroup) {
-            if ($currentGroupSize !== $currentGroupSizeLimit) {
+        for ($i = 0; $i < count($this->groups); $i++) {
+            if ($groupSizes[$i] !== $this->groups[$i]) {
                 return false;
             }
-            $groupIndex += 1;
         }
 
-        // Ensure we've seen all of our expected groups
-        return $groupIndex === count($this->groups);
+        return true;
     }
 
     /**
@@ -140,6 +110,13 @@ final readonly class SpringRow {
             } else if ($status === SpringStatus::Bad) {
                 $currentSize += 1;
             }
+
+            $lastStatus = $status;
+        }
+
+        // Ended in a group, record that
+        if ($currentSize > 0) {
+            $output[]= $currentSize;
         }
 
         return $output;
