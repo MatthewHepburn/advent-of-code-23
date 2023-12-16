@@ -2,6 +2,8 @@
 
 namespace AoC\Common;
 
+use Exception;
+
 class InputLoader
 {
     public function __construct(private string $dir) {}
