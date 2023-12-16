@@ -33,23 +33,19 @@ final readonly class SpringRow {
         return new self($statuses, $groups);
     }
 
-    /**
-     * @param SpringRow[] $rows
-     *
-     * @return self
-     */
-    public static function fromRowParts(array $rows): self
+
+    public function getOptionCount(): int
     {
-        $newStatuses = [];
-        $newGroups = [];
-        for ($i = 0; $i < count($rows); $i++) {
-            $join = $i !== 0 ? [SpringStatus::Unknown] : [];
-            $newStatuses = array_merge($newStatuses, $join, $rows[$i]->statuses);
-            $newGroups = array_merge($newGroups, $rows[$i]->groups);
+        $candidates = $this->getCandidates();
+        $validCandidates = 0;
+        foreach ($candidates as $candidate) {
+            $valid = $candidate->isSatisfied();
+            if ($valid) {
+                $validCandidates += 1;
+            }
         }
 
-        return new self($newStatuses, $newGroups);
-
+        return $validCandidates;
     }
 
     /**

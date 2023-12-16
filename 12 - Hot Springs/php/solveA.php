@@ -14,19 +14,9 @@ $rows = getSpringRows();
 $total = 0;
 foreach ($rows as $row) {
     $logger->log("Considering Row: " . $row);
-    $candidates = $row->getCandidates();
-    $logger->log("  Identified " . count($candidates) . " potential candidates");
-    $validCandidates = 0;
-    foreach ($candidates as $candidate) {
-        $valid = $candidate->isSatisfied();
-        $statusString = $valid ? "Valid" : "Invalid";
-        $logger->log("    $statusString - $candidate");
-        if ($valid) {
-            $validCandidates += 1;
-        }
-    }
-    $total += $validCandidates;
-    $logger->log(    "Found $validCandidates valid options");
+    $count = $row->getOptionCount();
+    $total += $count;
+    $logger->log(    "Found $count valid options");
 }
 
 echo $total . "\n";
