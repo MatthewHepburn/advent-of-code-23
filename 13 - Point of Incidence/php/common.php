@@ -25,7 +25,7 @@ final class MirrorMap
     public function findReflectionColumns(): array
     {
         $reflectionColumns = [];
-        for ($i = 1; $i < count($this->points[0]) - 1; $i++) {
+        for ($i = 0; $i < count($this->points[0]) - 1; $i++) {
             // Do we have a reflection around $i?
             for ($offset = 0; $i + $offset + 1 < count($this->points[0]) && $i - $offset >= 0; $offset++) {
                 for($j = 0; $j < count($this->points); $j++) {
@@ -46,7 +46,7 @@ final class MirrorMap
     public function findReflectionRows(): array
     {
         $reflectionRows = [];
-        for ($i = 1; $i < count($this->points) - 1; $i++) {
+        for ($i = 0; $i < count($this->points) - 1; $i++) {
             // Do we have a reflection around $i?
             for ($offset = 0; $i + $offset + 1 < count($this->points) && $i - $offset >= 0; $offset++) {
                 $topRow = $this->points[$i - $offset];

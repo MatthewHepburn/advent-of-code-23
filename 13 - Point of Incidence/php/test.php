@@ -25,7 +25,7 @@ EOF, [], [5]],
 #....#..#
 EOF, [4], []],
     [<<<'EOF'
-....
+#...
 ..##
 ####
 EOF, [], [3]],
@@ -52,6 +52,8 @@ foreach ($cases as [$string,$expectedRows, $expectedColumns]) {
 
     $actualColumns = $map->findReflectionColumns();
     if (count($actualColumns) !== count($expectedColumns)) {
+        echo "Expected = " . json_encode($expectedColumns) . "\n";
+        echo "Actual = " . json_encode($actualColumns) . "\n";
         throw new \Exception('Column mismatch! Expected ' . count($expectedColumns) . ' cols, got ' . count($actualColumns));
     }
     foreach ($actualColumns as $index => $value) {
