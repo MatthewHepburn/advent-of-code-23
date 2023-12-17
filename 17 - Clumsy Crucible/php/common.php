@@ -70,43 +70,27 @@ final class CrucibleCosts implements Costs
 
 final class UltraCrucibleCosts implements Costs
 {
-    public ?int $north1 = null;
-    public ?int $north2 = null;
-    public ?int $north3 = null;
-    public ?int $east1 = null;
-    public ?int $east2 = null;
-    public ?int $east3 = null;
-    public ?int $south1 = null;
-    public ?int $south2 = null;
-    public ?int $south3 = null;
-    public ?int $west1 = null;
-    public ?int $west2 = null;
-    public ?int $west3 = null;
+    private array $costMap = [];
 
-    public function getBestCost(): int
+    public function getBestCost(): ?int
     {
-        $values = [
-            $this->north1,
-            $this->north2,
-            $this->north3,
-            $this->east1,
-            $this->east2,
-            $this->east3,
-            $this->south1,
-            $this->south2,
-            $this->south3,
-            $this->west1,
-            $this->west2,
-            $this->west3,
-        ];
-        return min(...array_filter($values));
+        // We need to have travelled 4 in a row to be able to stop. Filter out any costs with fewer steps
+        $filteredCosts = [];
+        foreach ($this->costMap as $key => $cost) {
+            [$discard, $steps] = explode('-', $key);
+            if ((int) $steps >= 4) {
+                $filteredCosts[$key] = $cost;
+            }
+        }
+
+        return $filteredCosts ? min(array_values($filteredCosts)): null;
     }
 
     public function recordCost(Direction $direction, int $steps, int $cost): bool {
-        $key = "{$direction->value}{$steps}";
-        $improved = $this->$key === null || $cost < $this->$key;
+        $key = "{$direction->value}-{$steps}";
+        $improved = (!isset($this->costMap[$key])) || $cost < $this->costMap[$key];
         if ($improved) {
-            $this->$key = $cost;
+            $this->costMap[$key] = $cost;
         }
 
         return $improved;
@@ -291,6 +275,15 @@ final class StreetMap
             if ($endCost !== null) {
                 $frontier = filter($frontier, fn(JourneyState $s) => $s->cost < $endCost);
                 $this->logger?->log("We have an end cost, filtered down options to " . count($frontier));
+            } else if (count($frontier) > 10) {
+                $worstScore = null;
+                foreach ($frontier as $state) {
+                    $worstScore = $worstScore ?? $state->cost;
+                    $worstScore = max($worstScore, $state->cost);
+                }
+                $cutoff = (int) ($worstScore * 1);
+                $frontier = filter($frontier, fn(JourneyState $s) => $s->cost < $cutoff);
+                $this->logger->log("Culling states with costs above $cutoff, culled to " . count($frontier));
             }
         } while ($frontier);
     }
