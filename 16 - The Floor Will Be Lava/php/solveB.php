@@ -16,14 +16,14 @@ $input = (new InputLoader(__DIR__))->getAsCharArray();
 $maxCount = 1;
 for ($i = 0; $i < count($input); $i++) {
     // Try energising from the west:
-    $logger->log("Computing row $i from the west");
+    $logger->log("Computing row $i from the West");
     $map = new ContraptionMap($input);
     $map->energiseFromWest($i, 0);
     $map->run();
     $maxCount = max($maxCount, $map->getEnergisedCount());
 
     // Try energising from the east:
-    $logger->log("Computing row $i from the east");
+    $logger->log("Computing row $i from the East");
     $map = new ContraptionMap($input);
     $map->energiseFromEast($i, count($input[0]) - 1);
     $map->run();
@@ -32,12 +32,14 @@ for ($i = 0; $i < count($input); $i++) {
 
 for ($j = 0; $j < count($input[0]); $j++) {
     // From the north:
+    $logger->log("Computing column $j from the North");
     $map = new ContraptionMap($input);
     $map->energiseFromNorth(0, $j);
     $map->run();
     $maxCount = max($maxCount, $map->getEnergisedCount());
 
     // From the south:
+    $logger->log("Computing column $j from the South");
     $map = new ContraptionMap($input);
     $map->energiseFromSouth(count($input) - 1, $j);
     $map->run();

@@ -235,37 +235,53 @@ final class ContraptionMap
 
     public function run(): void
     {
-        do {
-            $changed = $this->tick();
-        } while ($changed);
-    }
-
-    public function tick(): bool
-    {
-        $changed = false;
-        foreach ($this->adjacenyGenerator->getIs() as $i) {
-            foreach ($this->adjacenyGenerator->getJs() as $j) {
-                $startPoint = $this->points[$i][$j];
-
-                if ($startPoint->emittingNorth && $this->adjacenyGenerator->getUp($i, $j)) {
-                    [$endI, $endJ] = $this->adjacenyGenerator->getUp($i, $j);
-                    $changed = $this->energiseFromSouth($endI, $endJ) || $changed;
-                }
-                if ($startPoint->emittingSouth && $this->adjacenyGenerator->getDown($i, $j)) {
-                    [$endI, $endJ] = $this->adjacenyGenerator->getDown($i, $j);
-                    $changed = $this->energiseFromNorth($endI, $endJ) || $changed;
-                }
-                if ($startPoint->emittingEast && $this->adjacenyGenerator->getRight($i, $j)) {
-                    [$endI, $endJ] = $this->adjacenyGenerator->getRight($i, $j);
-                    $changed = $this->energiseFromWest($endI, $endJ) || $changed;
-                }
-                if ($startPoint->emittingWest && $this->adjacenyGenerator->getLeft($i, $j)) {
-                    [$endI, $endJ] = $this->adjacenyGenerator->getLeft($i, $j);
-                    $changed = $this->energiseFromEast($endI, $endJ) || $changed;
+        // Find our start point(s)
+        $changed = [];
+        foreach ($this->points as $i => $row) {
+            foreach ($row as $j => $point) {
+                if ($point->isEnergised()) {
+                    $changed[]= [$i, $j];
                 }
             }
         }
-        return $changed;
+        do {
+            $changed = $this->tick($changed);
+        } while (count($changed) > 0);
+    }
+
+    public function tick(array $startPoints): array
+    {
+        $changedPoints = [];
+        foreach ($startPoints as [$i, $j]) {
+            $startPoint = $this->points[$i][$j];
+
+            if ($startPoint->emittingNorth && $this->adjacenyGenerator->getUp($i, $j)) {
+                [$endI, $endJ] = $this->adjacenyGenerator->getUp($i, $j);
+                if ($this->energiseFromSouth($endI, $endJ)) {
+                    $changedPoints[]= [$endI, $endJ];
+                }
+            }
+            if ($startPoint->emittingSouth && $this->adjacenyGenerator->getDown($i, $j)) {
+                [$endI, $endJ] = $this->adjacenyGenerator->getDown($i, $j);
+                if ($this->energiseFromNorth($endI, $endJ)) {
+                    $changedPoints[]= [$endI, $endJ];
+                }
+            }
+            if ($startPoint->emittingEast && $this->adjacenyGenerator->getRight($i, $j)) {
+                [$endI, $endJ] = $this->adjacenyGenerator->getRight($i, $j);
+                if ($this->energiseFromWest($endI, $endJ)) {
+                    $changedPoints[]= [$endI, $endJ];
+                }
+            }
+            if ($startPoint->emittingWest && $this->adjacenyGenerator->getLeft($i, $j)) {
+                [$endI, $endJ] = $this->adjacenyGenerator->getLeft($i, $j);
+                if ($this->energiseFromEast($endI, $endJ)) {
+                    $changedPoints[]= [$endI, $endJ];
+                }
+            }
+        }
+
+        return $changedPoints;
     }
 }
 
