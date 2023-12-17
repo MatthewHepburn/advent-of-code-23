@@ -145,7 +145,8 @@ final class StreetMap
 
     public function search(): void {
         $frontier = [
-            new JourneyState(Direction::East, 0, 0, 0, 0)
+            new JourneyState(Direction::East, 0, 0, 0, 0),
+            new JourneyState(Direction::South, 0, 0, 0, 0)
         ];
 
         do {

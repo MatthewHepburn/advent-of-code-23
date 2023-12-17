@@ -16,3 +16,4 @@ $map->search();
 $logger->log($map->getBestCostDiagram());
 
 echo $map->squares[count($map->squares) - 1][count($map->squares[0]) - 1]->costs->getBestCost() . "\n";
+
