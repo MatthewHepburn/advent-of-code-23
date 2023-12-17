@@ -18,34 +18,95 @@ enum Direction: string
     case West = 'west';
 }
 
-final class GridCosts
+interface Costs {
+    public function getBestCost(): ?int;
+    public function recordCost(Direction $direction, int $steps, int $cost): bool;
+}
+final class CrucibleCosts implements Costs
 {
-    private array $costMap = [];
+    public ?int $north1 = null;
+    public ?int $north2 = null;
+    public ?int $north3 = null;
+    public ?int $east1 = null;
+    public ?int $east2 = null;
+    public ?int $east3 = null;
+    public ?int $south1 = null;
+    public ?int $south2 = null;
+    public ?int $south3 = null;
+    public ?int $west1 = null;
+    public ?int $west2 = null;
+    public ?int $west3 = null;
 
     public function getBestCost(): ?int
     {
-        return $this->costMap ? min(...array_values($this->costMap)) : null;
-    }
-
-    public function getBestUltraCrucibleCosts(): ?int
-    {
-        // We need to have travelled 4 in a row to be able to stop. Filter out any costs with fewer steps
-        $filteredCosts = [];
-        foreach ($this->costMap as $key => $cost) {
-            [$discard, $steps] = explode('-', $key);
-            if ((int) $steps >= 4) {
-                $filteredCosts[$key] = $cost;
-            }
-        }
-
-        return $filteredCosts ? min(array_values($filteredCosts)): null;
+        $values = [
+            $this->north1,
+            $this->north2,
+            $this->north3,
+            $this->east1,
+            $this->east2,
+            $this->east3,
+            $this->south1,
+            $this->south2,
+            $this->south3,
+            $this->west1,
+            $this->west2,
+            $this->west3,
+        ];
+        $filteredVals = array_filter($values);
+        return $filteredVals ? min(...$filteredVals) : null;
     }
 
     public function recordCost(Direction $direction, int $steps, int $cost): bool {
-        $key = "{$direction->value}-{$steps}";
-        $improved = (!isset($this->costMap[$key])) || $cost < $this->costMap[$key];
+        $key = "{$direction->value}{$steps}";
+        $improved = $this->$key === null || $cost < $this->$key;
         if ($improved) {
-            $this->costMap[$key] = $cost;
+            $this->$key = $cost;
+        }
+
+        return $improved;
+    }
+}
+
+final class UltraCrucibleCosts implements Costs
+{
+    public ?int $north1 = null;
+    public ?int $north2 = null;
+    public ?int $north3 = null;
+    public ?int $east1 = null;
+    public ?int $east2 = null;
+    public ?int $east3 = null;
+    public ?int $south1 = null;
+    public ?int $south2 = null;
+    public ?int $south3 = null;
+    public ?int $west1 = null;
+    public ?int $west2 = null;
+    public ?int $west3 = null;
+
+    public function getBestCost(): int
+    {
+        $values = [
+            $this->north1,
+            $this->north2,
+            $this->north3,
+            $this->east1,
+            $this->east2,
+            $this->east3,
+            $this->south1,
+            $this->south2,
+            $this->south3,
+            $this->west1,
+            $this->west2,
+            $this->west3,
+        ];
+        return min(...array_filter($values));
+    }
+
+    public function recordCost(Direction $direction, int $steps, int $cost): bool {
+        $key = "{$direction->value}{$steps}";
+        $improved = $this->$key === null || $cost < $this->$key;
+        if ($improved) {
+            $this->$key = $cost;
         }
 
         return $improved;
@@ -53,11 +114,13 @@ final class GridCosts
 }
 final class GridSquare
 {
-    public GridCosts $costs;
+    public bool $isStart = false;
+    public bool $isEnd = false;
+    public Costs $costs;
 
-    public function __construct(public readonly int $cost)
+    public function __construct(public readonly int $cost, bool $ultra)
     {
-        $this->costs = new GridCosts();
+        $this->costs = $ultra ? new UltraCrucibleCosts() : new CrucibleCosts();
     }
 }
 
@@ -149,11 +212,12 @@ final class StreetMap
      * @param string[][] $points
      */
     public function __construct(
-        array $points
+        array $points,
+        bool $ultra = false
     ) {
         $this->squares = [];
         foreach ($points as $row) {
-            $this->squares[]= array_map(fn(string $x) => new GridSquare((int) $x), $row);
+            $this->squares[]= array_map(fn(string $x) => new GridSquare((int) $x, $ultra), $row);
         }
         $this->endSquare = $this->squares[count($this->squares) - 1][count($this->squares[0]) - 1];
 
@@ -169,6 +233,7 @@ final class StreetMap
     public function search(): void {
         $frontier = [
             new JourneyState(Direction::East, 0, 0, 0, 0),
+            new JourneyState(Direction::South, 0, 0, 0, 0)
         ];
 
         do {
@@ -222,7 +287,7 @@ final class StreetMap
             $frontier = $this->doSearchIterationUltraCrucible($frontier);
             $this->logger?->log("Frontier has "  . count($frontier) . " states");
 
-            $endCost = $this->endSquare->costs->getBestUltraCrucibleCosts();
+            $endCost = $this->endSquare->costs->getBestCost();
             if ($endCost !== null) {
                 $frontier = filter($frontier, fn(JourneyState $s) => $s->cost < $endCost);
                 $this->logger?->log("We have an end cost, filtered down options to " . count($frontier));
@@ -258,7 +323,8 @@ final class StreetMap
         return $newFrontier;
     }
 
-    public function getBestCostDiagram(): string
+
+            public function getBestCostDiagram(): string
     {
         $output = '';
         foreach ($this->squares as $row) {
@@ -270,9 +336,9 @@ final class StreetMap
     }
 }
 
-function getMap(): StreetMap
+function getMap(bool $ultra = false): StreetMap
 {
     $input = (new InputLoader(__DIR__))->getAsCharArray();
-    return new StreetMap($input);
+    return new StreetMap($input, $ultra);
 }
 

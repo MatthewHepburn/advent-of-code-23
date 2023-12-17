@@ -10,12 +10,10 @@ require_once __DIR__ . '/../../common/php/autoload.php';
 
 $logger = new Logger();
 
-$map = getMap();
+$map = getMap(true);
 $map->logger = $logger;
-$map->searchUltraCrucible();
+$map->search();
 $logger->log($map->getBestCostDiagram());
 
-$endSquare = $map->squares[count($map->squares) - 1][count($map->squares[0]) - 1];
-
-echo $endSquare->costs->getBestUltraCrucibleCosts() . "\n";
+echo $map->squares[count($map->squares) - 1][count($map->squares[0]) - 1]->costs->getBestCost() . "\n";
 
