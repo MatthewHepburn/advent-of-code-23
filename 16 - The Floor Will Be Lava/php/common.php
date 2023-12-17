@@ -97,23 +97,103 @@ final class ContraptionMap
             $this->points[]= array_map(fn(string $x) => new MapPoint($x), $inputRow);
         }
 
-        $startPoint = $this->points[0][0];
-        switch ($startPoint->symbol) {
+        $this->adjacenyGenerator = new AdjacenyGenerator2D(0, 0, count($this->points) - 1, count($this->points[0]) - 1, false);
+    }
+
+    public function energiseFromSouth(int $i, int $j): bool
+    {
+        $changed = false;
+        $endPoint = $this->points[$i][$j];
+        switch ($endPoint->symbol) {
             case '.':
+            case '|':
+                $changed = $endPoint->emitNorth();
+                break;
             case '-':
-                $startPoint->emittingEast = true;
+                $changed = $endPoint->emitEast();
+                $changed = $endPoint->emitWest() || $changed;
                 break;
             case '\\':
-            case '|':
-                $startPoint->emittingSouth = true;
+                $changed = $endPoint->emitWest();
                 break;
             case '/':
-                throw new \Exception('Bad start - you probably never want to see this');
-            default:
-                throw new \Exception('Unknown symbol');
+                $changed = $endPoint->emitEast();
+                break;
         }
 
-        $this->adjacenyGenerator = new AdjacenyGenerator2D(0, 0, count($this->points) - 1, count($this->points[0]) - 1, false);
+        return $changed;
+    }
+
+    public function energiseFromNorth(int $i, int $j): bool
+    {
+        $changed = false;
+        $endPoint = $this->points[$i][$j];
+        switch ($endPoint->symbol) {
+            case '.':
+            case '|':
+                $changed = $endPoint->emitSouth();
+                break;
+            case '-':
+                $changed = $endPoint->emitEast();
+                $changed = $endPoint->emitWest() || $changed;
+                break;
+            case '\\':
+                $changed = $endPoint->emitEast();
+                break;
+            case '/':
+                $changed = $endPoint->emitWest();
+                break;
+        }
+
+        return $changed;
+    }
+
+    public function energiseFromEast(int $i, int $j): bool
+    {
+        $changed = false;
+        $endPoint = $this->points[$i][$j];
+        switch ($endPoint->symbol) {
+            case '.':
+            case '-':
+                $changed = $endPoint->emitWest();
+                break;
+            case '|':
+                $changed = $endPoint->emitNorth();
+                $changed = $endPoint->emitSouth() || $changed;
+                break;
+            case '\\':
+                $changed = $endPoint->emitNorth();
+                break;
+            case '/':
+                $changed = $endPoint->emitSouth();
+                break;
+        }
+
+        return $changed;
+    }
+
+    public function energiseFromWest(int $i, int $j): bool
+    {
+        $changed = false;
+        $endPoint = $this->points[$i][$j];
+        switch ($endPoint->symbol) {
+            case '.':
+            case '-':
+                $changed = $endPoint->emitEast();
+                break;
+            case '|':
+                $changed = $endPoint->emitNorth();
+                $changed = $endPoint->emitSouth() || $changed;
+                break;
+            case '\\':
+                $changed = $endPoint->emitSouth();
+                break;
+            case '/':
+                $changed = $endPoint->emitNorth();
+                break;
+        }
+
+        return $changed;
     }
 
     public function getDiagram(): string
@@ -169,83 +249,19 @@ final class ContraptionMap
 
                 if ($startPoint->emittingNorth && $this->adjacenyGenerator->getUp($i, $j)) {
                     [$endI, $endJ] = $this->adjacenyGenerator->getUp($i, $j);
-                    $endPoint = $this->points[$endI][$endJ];
-                    switch ($endPoint->symbol) {
-                        case '.':
-                        case '|':
-                            $changed = $endPoint->emitNorth() || $changed;
-                            break;
-                        case '-':
-                            $changed = $endPoint->emitEast() || $changed;
-                            $changed = $endPoint->emitWest() || $changed;
-                            break;
-                        case '\\':
-                            $changed = $endPoint->emitWest() || $changed;
-                            break;
-                        case '/':
-                            $changed = $endPoint->emitEast() || $changed;
-                            break;
-                    }
+                    $changed = $this->energiseFromSouth($endI, $endJ) || $changed;
                 }
                 if ($startPoint->emittingSouth && $this->adjacenyGenerator->getDown($i, $j)) {
                     [$endI, $endJ] = $this->adjacenyGenerator->getDown($i, $j);
-                    $endPoint = $this->points[$endI][$endJ];
-                    switch ($endPoint->symbol) {
-                        case '.':
-                        case '|':
-                            $changed = $endPoint->emitSouth() || $changed;
-                            break;
-                        case '-':
-                            $changed = $endPoint->emitEast() || $changed;
-                            $changed = $endPoint->emitWest() || $changed;
-                            break;
-                        case '\\':
-                            $changed = $endPoint->emitEast() || $changed;
-                            break;
-                        case '/':
-                            $changed = $endPoint->emitWest() || $changed;
-                            break;
-                    }
+                    $changed = $this->energiseFromNorth($endI, $endJ) || $changed;
                 }
                 if ($startPoint->emittingEast && $this->adjacenyGenerator->getRight($i, $j)) {
                     [$endI, $endJ] = $this->adjacenyGenerator->getRight($i, $j);
-                    $endPoint = $this->points[$endI][$endJ];
-                    switch ($endPoint->symbol) {
-                        case '.':
-                        case '-':
-                            $changed = $endPoint->emitEast() || $changed;
-                            break;
-                        case '|':
-                            $changed = $endPoint->emitNorth() || $changed;
-                            $changed = $endPoint->emitSouth() || $changed;
-                            break;
-                        case '\\':
-                            $changed = $endPoint->emitSouth() || $changed;
-                            break;
-                        case '/':
-                            $changed = $endPoint->emitNorth() || $changed;
-                            break;
-                    }
+                    $changed = $this->energiseFromWest($endI, $endJ) || $changed;
                 }
                 if ($startPoint->emittingWest && $this->adjacenyGenerator->getLeft($i, $j)) {
                     [$endI, $endJ] = $this->adjacenyGenerator->getLeft($i, $j);
-                    $endPoint = $this->points[$endI][$endJ];
-                    switch ($endPoint->symbol) {
-                        case '.':
-                        case '-':
-                            $changed = $endPoint->emitWest() || $changed;
-                            break;
-                        case '|':
-                            $changed = $endPoint->emitNorth() || $changed;
-                            $changed = $endPoint->emitSouth() || $changed;
-                            break;
-                        case '\\':
-                            $changed = $endPoint->emitNorth() || $changed;
-                            break;
-                        case '/':
-                            $changed = $endPoint->emitSouth() || $changed;
-                            break;
-                    }
+                    $changed = $this->energiseFromEast($endI, $endJ) || $changed;
                 }
             }
         }
