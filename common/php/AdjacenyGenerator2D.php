@@ -52,6 +52,18 @@ readonly class AdjacenyGenerator2D
         return $this->isInBounds($candidate) ? $candidate : null;
     }
 
+    public function getIs(): \Generator {
+        for ($i = $this->minI; $i <= $this->maxI; $i++) {
+            yield $i;
+        }
+    }
+
+    public function getJs(): \Generator {
+        for ($j = $this->minJ; $j <= $this->maxJ; $j++) {
+            yield $j;
+        }
+    }
+
     private function isInBounds(array $candidate): bool {
         [$i, $j] = $candidate;
         if ($i < $this->minI || $i > $this->maxI) {
