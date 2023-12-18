@@ -51,7 +51,6 @@ final readonly class PlanStep
             Direction::Down => [$i + $this->distance, $j],
             Direction::Left => [$i, $j - $this->distance],
             Direction::Right => [$i, $j + $this->distance],
-
         };
     }
 }
@@ -60,16 +59,17 @@ final class MapPoint
 {
     public bool $isExcavated = false;
     public ?string $edgeColour = null;
+    public ?Direction $digDirection = null;
 
     public function __toString(): string
     {
-        return $this->isExcavated ? '#' : ' ';
+        return $this->digDirection ? $this->digDirection->value : ' ';
     }
 }
 
 final class ExcavationMap
 {
-    /** @var MapPoint[] */
+    /** @var MapPoint[][] */
     public array $points;
     public readonly array $startPoint;
 
@@ -106,8 +106,41 @@ final class ExcavationMap
                 $point = $this->getPointAt(...$position);
                 $point->isExcavated = true;
                 $point->edgeColour = $step->edgeColour;
+                $point->digDirection = $step->direction;
             }
         }
+    }
+
+    public function markInner(): int
+    {
+        $excavated = 0;
+        foreach ($this->points as $i => $row) {
+            $inTrench = false;
+            $lastBoundary = null;
+            foreach ($row as $j => $point) {
+                $isExcavated = $point->isExcavated;
+                if ($isExcavated) {
+                    $isBoundary = $point->digDirection === Direction::Up || $point->digDirection === Direction::Down;
+                    if ($isBoundary) {
+                        if ($lastBoundary && $lastBoundary === $point->digDirection) {
+                            $inTrench = !$inTrench;
+                        } elseif ($lastBoundary === null) {
+                            $inTrench = !$inTrench;
+                        }
+                        $lastBoundary = $point->digDirection;
+                    }
+                } else if ($inTrench && !$excavated) {
+                    $lastBoundary = null;
+                    $point->isExcavated = true;
+                }
+
+                if ($point->isExcavated) {
+                    $excavated += 1;
+                }
+            }
+        }
+
+        return $excavated;
     }
 
     public function getDiagram(): string
@@ -159,10 +192,11 @@ function getMapSpec(array $steps): MapSpec
         $maxJ = max($maxI, $j);
     }
 
-    $height = $maxI - $minI;
-    $width = $maxJ - $minJ;
-    $startI = abs($minI);
-    $startJ = abs($minJ);
+    // Padding - shouldn't need this, but easier than working our where we've gone wrong
+    $height = 10 + $maxI - $minI;
+    $width = 10 + $maxJ - $minJ;
+    $startI = abs($minI) + 1;
+    $startJ = abs($minJ) + 1;
 
     return new MapSpec($width, $height, $startI, $startJ);
 }
