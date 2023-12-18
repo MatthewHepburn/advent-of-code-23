@@ -3,8 +3,8 @@ declare(strict_types=1);
 
 namespace AoC\Eighteen;
 
+use AoC\Common\AdjacenyGenerator2D;
 use AoC\Common\InputLoader;
-use function AoC\Common\filter;
 
 require_once __DIR__ . '/../../common/php/autoload.php';
 
@@ -57,13 +57,18 @@ final readonly class PlanStep
 
 final class MapPoint
 {
+    public bool $isInside = true;
     public bool $isExcavated = false;
     public ?string $edgeColour = null;
-    public ?Direction $digDirection = null;
 
     public function __toString(): string
     {
-        return $this->digDirection ? $this->digDirection->value : ' ';
+        return $this->isExcavated ? '#' : ' ';
+    }
+
+    public function toPoolString(): string
+    {
+        return ($this->isExcavated || $this->isInside) ? '#' : ' ';
     }
 }
 
@@ -72,6 +77,7 @@ final class ExcavationMap
     /** @var MapPoint[][] */
     public array $points;
     public readonly array $startPoint;
+    public AdjacenyGenerator2D $adjacenyGenerator;
 
     public function __construct(MapSpec $mapSpec)
     {
@@ -85,6 +91,8 @@ final class ExcavationMap
         }
 
         $this->startPoint = [$mapSpec->startI, $mapSpec->startJ];
+
+        $this->adjacenyGenerator = new AdjacenyGenerator2D(0, 0, count($this->points) - 1, count($this->points[0]) - 1, false);
     }
 
     public function getPointAt(int $i, int $j): MapPoint
@@ -106,47 +114,72 @@ final class ExcavationMap
                 $point = $this->getPointAt(...$position);
                 $point->isExcavated = true;
                 $point->edgeColour = $step->edgeColour;
-                $point->digDirection = $step->direction;
             }
         }
     }
 
-    public function markInner(): int
+    public function markInner(): void
     {
-        $excavated = 0;
-        foreach ($this->points as $i => $row) {
-            $inTrench = false;
-            $lastBoundary = null;
-            foreach ($row as $j => $point) {
-                $isExcavated = $point->isExcavated;
-                if ($isExcavated) {
-                    $isBoundary = $point->digDirection === Direction::Up || $point->digDirection === Direction::Down;
-                    if ($isBoundary) {
-                        if ($lastBoundary && $lastBoundary === $point->digDirection) {
-                            $inTrench = !$inTrench;
-                        } elseif ($lastBoundary === null) {
-                            $inTrench = !$inTrench;
-                        }
-                        $lastBoundary = $point->digDirection;
+        $startPoints = [
+            [0,0],
+            [count($this->points) - 1, 0],
+            [count($this->points) - 1, count($this->points[0]) -1],
+            [0, count($this->points[0]) -1]
+        ];
+        foreach ($startPoints as $startCoord) {
+            $outsidePoint = $this->getPointAt(...$startCoord);
+            $outsidePoint->isInside = false;
+        }
+        $frontier = $startPoints;
+        do {
+            $newFrontier = [];
+            foreach ($frontier as $coords) {
+                $neighbours = $this->adjacenyGenerator->getAdjacent(...$coords);
+                foreach ($neighbours as $neighbourCoords) {
+                    $neighbourPoint = $this->getPointAt(...$neighbourCoords);
+                    if ($neighbourPoint->isExcavated) {
+                        continue;
                     }
-                } else if ($inTrench && !$excavated) {
-                    $lastBoundary = null;
-                    $point->isExcavated = true;
+                    if (!$neighbourPoint->isInside) {
+                        continue;
+                    }
+                    $neighbourPoint->isInside = false;
+                    $newFrontier[]= $neighbourCoords;
                 }
+            }
+            $frontier = $newFrontier;
+        } while ($frontier);
+    }
 
-                if ($point->isExcavated) {
-                    $excavated += 1;
+    public function getPoolSize(): int
+    {
+        $total = 0;
+        foreach ($this->points as $row) {
+            foreach ($row as $point) {
+                if ($point->isExcavated || $point->isInside) {
+                    $total += 1;
                 }
             }
         }
 
-        return $excavated;
+        return $total;
     }
 
-    public function getDiagram(): string
+    public function getOutlineDiagram(): string
     {
         $output = '';
         foreach ($this->points as $row) {
+            $output .= implode('', $row) . "\n";
+        }
+
+        return $output;
+    }
+
+    public function getPoolDiagram(): string
+    {
+        $output = '';
+        foreach ($this->points as $row) {
+            $row = array_map(fn(MapPoint $p) => $p->toPoolString(), $row);
             $output .= implode('', $row) . "\n";
         }
 

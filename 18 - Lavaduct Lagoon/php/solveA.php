@@ -17,10 +17,10 @@ $logger->log("MapSpec = $mapSpec");
 $map = new ExcavationMap($mapSpec);
 $map->followPlan($steps);
 $logger->log("After Digging:");
-$logger->log($map->getDiagram());
+$logger->log($map->getOutlineDiagram());
 
-$count = $map->markInner();
+$map->markInner();
 $logger->log("After filling:");
-$logger->log($map->getDiagram());
+$logger->log($map->getPoolDiagram());
 
-echo $count . "\n";
+echo $map->getPoolSize() . "\n";
