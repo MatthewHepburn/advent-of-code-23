@@ -15,12 +15,13 @@ $mapSpec = getMapSpec($steps);
 
 $logger->log("MapSpec = $mapSpec");
 $map = new ExcavationMap($mapSpec);
+$map->logger = $logger;
 $map->followPlan($steps);
 $logger->log("After Digging:");
 $logger->log($map->getOutlineDiagram());
 
-$map->markInner();
-$logger->log("After filling:");
-$logger->log($map->getPoolDiagram());
+$total = $map->markInner();
+//$logger->log("After filling:");
+//$logger->log($map->getPoolDiagram());
 
-echo $map->getPoolSize() . "\n";
+echo $total . "\n";

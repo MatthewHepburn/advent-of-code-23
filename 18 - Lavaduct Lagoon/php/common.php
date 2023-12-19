@@ -5,6 +5,7 @@ namespace AoC\Eighteen;
 
 use AoC\Common\AdjacenyGenerator2D;
 use AoC\Common\InputLoader;
+use AoC\Common\Logger;
 
 require_once __DIR__ . '/../../common/php/autoload.php';
 
@@ -15,14 +16,17 @@ enum Direction: string
     case Left = 'L';
     case Right = 'R';
 
-    public function stepInDirection(int $i, int $j): array {
+    public function moveInDirection(int $i, int $j, int $distance): array {
         return match ($this) {
-            Direction::Up => [$i - 1, $j],
-            Direction::Down => [$i + 1, $j],
-            Direction::Left => [$i, $j - 1],
-            Direction::Right => [$i, $j + 1],
-
+            Direction::Up => [$i - $distance, $j],
+            Direction::Down => [$i + $distance, $j],
+            Direction::Left => [$i, $j - $distance],
+            Direction::Right => [$i, $j + $distance],
         };
+    }
+
+    public function stepInDirection(int $i, int $j): array {
+        return $this->moveInDirection($i, $j, 1);
     }
 }
 
@@ -55,11 +59,55 @@ final readonly class PlanStep
     }
 }
 
+final class Vertex {
+    public ?Direction $lastDirection = null;
+    public ?Direction $nextDirection = null;
+    public readonly array $endPoint;
+
+    public function __construct(
+        public readonly array $startPoint,
+        public readonly Direction $direction,
+        public readonly int $length
+    ) {
+        $this->endPoint = $this->direction->moveInDirection($this->startPoint[0], $this->startPoint[1],  $this->length);
+    }
+
+    public function intersectsVertical(int $i): bool
+    {
+        return ($this->startPoint[0] <= $i && $i <= $this->endPoint[0]) || ($this->endPoint[0] <= $i && $i <= $this->startPoint[0]);
+    }
+
+    public function pointConnectsTo(int $i, int $j): bool {
+        return ($this->startPoint[0] === $i && $this->startPoint[1] === $j) || ($this->endPoint[0] === $i && $this->endPoint[1] === $j);
+    }
+
+    public function isProtrusion(): bool
+    {
+        if (!$this->lastDirection || !$this->nextDirection) {
+            throw new \Exception("Missing direction from Vertex");
+        }
+
+        // If we entered going up and exited going down, we're a protrusion
+        return $this->lastDirection !== $this->nextDirection;
+    }
+
+    public function isVertical(): bool
+    {
+        return $this->direction === Direction::Up || $this->direction === Direction::Down;
+    }
+
+    public function __toString(): string
+    {
+        $last = $this->lastDirection?->value ?? '?';
+        $next = $this->nextDirection?->value ?? '?';
+        return "[$last ({$this->startPoint[0]}, {$this->startPoint[1]}) {$this->direction->value}{$this->length}-> ({$this->endPoint[0]}, {$this->endPoint[1]}) $next]";
+    }
+}
+
 final class MapPoint
 {
     public bool $isInside = true;
     public bool $isExcavated = false;
-    public ?string $edgeColour = null;
 
     public function __toString(): string
     {
@@ -76,6 +124,11 @@ final class ExcavationMap
 {
     /** @var MapPoint[][] */
     public array $points;
+    /** @var Vertex[] */
+    public array $horizontalVertices = [];
+    /** @var Vertex[] */
+    public array $verticalVertices = [];
+    public ?Logger $logger;
     public readonly array $startPoint;
     public AdjacenyGenerator2D $adjacenyGenerator;
 
@@ -108,47 +161,108 @@ final class ExcavationMap
     public function followPlan(array $steps): void
     {
         $position = $this->startPoint;
+        $firstVertex = null;
+        $lastVertex = null;
+        $lastDirection = null;
         foreach ($steps as $step) {
-            for ($d = 0; $d < $step->distance; $d ++) {
-                $position = $step->direction->stepInDirection(...$position);
-                $point = $this->getPointAt(...$position);
-                $point->isExcavated = true;
-                $point->edgeColour = $step->edgeColour;
+            $vertex = new Vertex($position, $step->direction, $step->distance);
+            $position = $vertex->endPoint;
+
+            if ($lastDirection) {
+                $vertex->lastDirection = $lastDirection;
+            } else {
+                $firstVertex = $vertex;
             }
+            if ($lastVertex) {
+                $lastVertex->nextDirection = $step->direction;
+            }
+
+            $lastDirection = $step->direction;
+            $lastVertex = $vertex;
+
+            if ($vertex->isVertical()) {
+                $this->verticalVertices[]= $vertex;
+            } else {
+                $this->horizontalVertices[]= $vertex;
+            }
+            $this->logger?->log("Line: $vertex");
         }
+        $firstVertex->lastDirection = $step->direction;
+        $lastVertex->nextDirection = $firstVertex->direction;
+
+        usort($this->verticalVertices, fn(Vertex $a, Vertex $b) => $a->startPoint[1] <=> $b->startPoint[1]);
+        usort($this->horizontalVertices, fn(Vertex $a, Vertex $b) => $a->startPoint[0] <=> $b->startPoint[0]);
     }
 
-    public function markInner(): void
+    public function markInner(): int
     {
-        $startPoints = [
-            [0,0],
-            [count($this->points) - 1, 0],
-            [count($this->points) - 1, count($this->points[0]) -1],
-            [0, count($this->points[0]) -1]
-        ];
-        foreach ($startPoints as $startCoord) {
-            $outsidePoint = $this->getPointAt(...$startCoord);
-            $outsidePoint->isInside = false;
+        $total = 0;
+        foreach ($this->verticalVertices as $verticalVertex) {
+            $total += $verticalVertex->length;
         }
-        $frontier = $startPoints;
-        do {
-            $newFrontier = [];
-            foreach ($frontier as $coords) {
-                $neighbours = $this->adjacenyGenerator->getAdjacent(...$coords);
-                foreach ($neighbours as $neighbourCoords) {
-                    $neighbourPoint = $this->getPointAt(...$neighbourCoords);
-                    if ($neighbourPoint->isExcavated) {
-                        continue;
-                    }
-                    if (!$neighbourPoint->isInside) {
-                        continue;
-                    }
-                    $neighbourPoint->isInside = false;
-                    $newFrontier[]= $neighbourCoords;
+        foreach ($this->horizontalVertices as $horizontalVertex) {
+            $total += $horizontalVertex->length;
+        }
+        $this->logger?->log("Total directly excavated: $total");
+        $enclosedByRow = [];
+
+        for ($i = 0; $i < count($this->points); $i++) {
+            $this->logger?->log("----Row $i-----");
+            $j = 0;
+            $inTrench = false;
+            $rowTotal = 0;
+            $horizontalIndex = 0;
+            foreach ($this->verticalVertices as $verticalVertex) {
+                if (!$verticalVertex->intersectsVertical($i)) {
+                    continue;
                 }
+                $this->logger?->log("Intersecting with vertical line $verticalVertex from ($i, $j). RowTotal = $rowTotal");
+                $moved = $verticalVertex->endPoint[1] - $j;
+                if ($moved === 0) {
+                    continue;
+                }
+                $j = $j + $moved;
+                if ($inTrench) {
+                    $rowTotal += $moved - 1;
+                }
+                $this->logger?->log("    ->Intersected with vertical line $verticalVertex, now at ($i, $j). RowTotal = $rowTotal");
+
+                // Have we hit a corner?
+                for (; $horizontalIndex < count($this->horizontalVertices); $horizontalIndex++) {
+                    $horizontalVertex = $this->horizontalVertices[$horizontalIndex];
+                    if ($horizontalVertex->pointConnectsTo($i, $j)) {
+                        $this->logger?->log("Point ($i, $j) lies on horizontal line $horizontalVertex");
+
+                        // Follow the vertex along to the right
+                        $rightEnd = max($horizontalVertex->endPoint[1], $horizontalVertex->startPoint[1]);
+                        $moved = $rightEnd - $j;
+                        if ($moved === 0) {
+                            continue;
+                        }
+                        $j = $rightEnd;
+                        $this->logger?->log("Hit corner, followed line $moved to ($i, $j)");
+                        if (!$horizontalVertex->isProtrusion()) {
+                            $this->logger?->log("  NOT protrusion, changing trench state. RowTotal = $rowTotal");
+                            $inTrench = !$inTrench;
+                        }
+                        $this->logger?->log("  was protrusion, not changing trench state. RowTotal = $rowTotal");
+                        continue 2;
+                    }
+                }
+
+                $this->logger?->log("No corner found");
+                // Didn't hit a corner, just a simple boundary
+                $inTrench = !$inTrench;
             }
-            $frontier = $newFrontier;
-        } while ($frontier);
+
+            $this->logger?->log("Row total for row $i = $rowTotal");
+            $enclosedByRow[$i] = $rowTotal;
+            $total += $rowTotal;
+        }
+
+        echo json_encode($enclosedByRow);
+
+        return $total;
     }
 
     public function getPoolSize(): int
