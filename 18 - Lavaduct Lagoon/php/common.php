@@ -106,7 +106,7 @@ final class Vertex {
 
 final class MapPoint
 {
-    public bool $isInside = true;
+    public bool $isInside = false;
     public bool $isExcavated = false;
 
     public function __toString(): string
@@ -116,7 +116,16 @@ final class MapPoint
 
     public function toPoolString(): string
     {
-        return ($this->isExcavated || $this->isInside) ? '#' : ' ';
+        if ($this->isInside && $this->isExcavated) {
+            return '!';
+        }
+        if ($this->isExcavated) {
+            return '#';
+        }
+        if ($this->isInside) {
+            return '+';
+        }
+        return ' ';
     }
 }
 
@@ -198,9 +207,11 @@ final class ExcavationMap
     {
         $total = 0;
         foreach ($this->verticalVertices as $verticalVertex) {
+            $this->markVertexExcavated($verticalVertex);
             $total += $verticalVertex->length;
         }
         foreach ($this->horizontalVertices as $horizontalVertex) {
+            $this->markVertexExcavated($horizontalVertex);
             $total += $horizontalVertex->length;
         }
         $this->logger?->log("Total directly excavated: $total");
@@ -221,10 +232,15 @@ final class ExcavationMap
                 if ($moved === 0) {
                     continue;
                 }
-                $j = $j + $moved;
                 if ($inTrench) {
+                    $this->logger?->log("In trench, moving $moved");
+                    for ($a = 1; $a < $moved; $a++) {
+                        $this->getPointAt($i, $j + $a)->isInside = true;
+                    }
                     $rowTotal += $moved - 1;
                 }
+                $j = $j + $moved;
+
                 $this->logger?->log("    ->Intersected with vertical line $verticalVertex, now at ($i, $j). RowTotal = $rowTotal");
 
                 // Have we hit a corner?
@@ -263,6 +279,15 @@ final class ExcavationMap
         echo json_encode($enclosedByRow);
 
         return $total;
+    }
+
+    public function markVertexExcavated(Vertex $vertex): void {
+        $point = $vertex->startPoint;
+        $this->getPointAt(...$point)->isExcavated = true;
+        for ($i = 0; $i < $vertex->length; $i++) {
+            $point = $vertex->direction->stepInDirection(...$point);
+            $this->getPointAt(...$point)->isExcavated = true;
+        }
     }
 
     public function getPoolSize(): int
