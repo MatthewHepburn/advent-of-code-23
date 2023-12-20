@@ -180,6 +180,7 @@ final class ExcavationMap
 {
     /** @var MapPoint[][] */
     public array $points;
+    public int $rows;
     /** @var Vertex[] */
     public array $horizontalVertices = [];
     /** @var Vertex[] */
@@ -200,7 +201,7 @@ final class ExcavationMap
             }
         }
 
-
+        $this->rows = $mapSpec->height;
         $this->startPoint = [$mapSpec->startI, $mapSpec->startJ];
     }
 
@@ -266,9 +267,8 @@ final class ExcavationMap
             $total += $horizontalVertex->length;
         }
         $this->logger?->log("Total directly excavated: $total");
-        $enclosedByRow = [];
 
-        for ($i = 0; $i < count($this->points); $i++) {
+        for ($i = 0; $i < $this->rows; $i++) {
             $this->logger?->log("----Row $i-----");
             $j = 0;
             $inTrench = false;
@@ -320,7 +320,6 @@ final class ExcavationMap
             }
 
             $this->logger?->log("Row total for row $i = $rowTotal");
-            $enclosedByRow[$i] = $rowTotal;
             $total += $rowTotal;
         }
 
