@@ -273,6 +273,7 @@ final class ExcavationMap
             $j = 0;
             $inTrench = false;
             $rowTotal = 0;
+            $sawHorizontal = false;
             foreach ($this->verticalVertices as $verticalVertex) {
                 if (!$verticalVertex->intersectsVertical($i)) {
                     continue;
@@ -297,6 +298,7 @@ final class ExcavationMap
 
                 $horizontalVertex = $verticalVertex->getAdjoiningVertex($i, $j);
                 if ($horizontalVertex && $horizontalVertex->extendsToRight($i, $j)) {
+                    $sawHorizontal = true;
                     $this->logger?->log("Point ($i, $j) lies on horizontal line $horizontalVertex");
 
                     // Follow the vertex along to the right
@@ -321,6 +323,26 @@ final class ExcavationMap
 
             $this->logger?->log("Row total for row $i = $rowTotal");
             $total += $rowTotal;
+
+            if (!$sawHorizontal) {
+                // No horizontal lines on this row, so skip ahead to the next landmark
+                $nextI = null;
+                foreach ($this->horizontalVertices as $horizontalVertex) {
+                    if ($horizontalVertex->startPoint[0] > $i) {
+                        $nextI = $nextI ? min($horizontalVertex->startPoint[0], $nextI) : $horizontalVertex->startPoint[0];
+                    }
+                }
+
+                if ($nextI && $nextI > $i + 1) {
+                    // Jump to 1 before, since we're about to hit an i++
+                    $nextI = $nextI - 1;
+                    $jump = $nextI - $i;
+                    $skippedRowTotal = ($jump) * $rowTotal;
+                    $this->logger?->log("Skipping from row $i to row $nextI, adding $jump x $rowTotal = $skippedRowTotal to total");
+                    $total += $skippedRowTotal;
+                    $i = $nextI;
+                }
+            }
         }
 
         return $total;
