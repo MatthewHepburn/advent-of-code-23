@@ -3,7 +3,6 @@ declare(strict_types=1);
 
 namespace AoC\Eighteen;
 
-use AoC\Common\AdjacenyGenerator2D;
 use AoC\Common\InputLoader;
 use AoC\Common\Logger;
 
@@ -43,9 +42,24 @@ final readonly class PlanStep
         [$dir, $dist, $col] = explode(' ', $line);
         $direction = Direction::from($dir);
         $distance = (int) $dist;
-        $colourCode = trim($col, '()');
+        $colourCode = trim($col, '(#)');
 
         return new PlanStep($direction, $distance, $colourCode);
+    }
+
+    public function getCorrected(): self
+    {
+        $hexChars = str_split($this->edgeColour);
+        $lastChar = array_pop($hexChars);
+        $direction = match ($lastChar) {
+            '0' => Direction::Right,
+            '1' => Direction::Down,
+            '2' => Direction::Left,
+            '3' => Direction::Up
+        };
+        $distance = hexdec(implode('', $hexChars));
+
+        return new PlanStep($direction, $distance, '');
     }
 
     public function getNewPosition(int $i, int $j): array
@@ -56,6 +70,11 @@ final readonly class PlanStep
             Direction::Left => [$i, $j - $this->distance],
             Direction::Right => [$i, $j + $this->distance],
         };
+    }
+
+    public function __toString(): string
+    {
+        return "{$this->direction->value} {$this->distance}";
     }
 }
 
@@ -167,22 +186,22 @@ final class ExcavationMap
     public array $verticalVertices = [];
     public ?Logger $logger;
     public readonly array $startPoint;
-    public AdjacenyGenerator2D $adjacenyGenerator;
 
-    public function __construct(MapSpec $mapSpec)
+    public function __construct(MapSpec $mapSpec, private readonly bool $visualise)
     {
         $this->points = [];
-        for ($i = 0; $i <= $mapSpec->height; $i++) {
-            $row = [];
-            for ($j = 0; $j <= $mapSpec->width; $j++) {
-                $row[]= new MapPoint();
+        if ($visualise) {
+            for ($i = 0; $i <= $mapSpec->height; $i++) {
+                $row = [];
+                for ($j = 0; $j <= $mapSpec->width; $j++) {
+                    $row[]= new MapPoint();
+                }
+                $this->points[]= $row;
             }
-            $this->points[]= $row;
         }
 
-        $this->startPoint = [$mapSpec->startI, $mapSpec->startJ];
 
-        $this->adjacenyGenerator = new AdjacenyGenerator2D(0, 0, count($this->points) - 1, count($this->points[0]) - 1, false);
+        $this->startPoint = [$mapSpec->startI, $mapSpec->startJ];
     }
 
     public function getPointAt(int $i, int $j): MapPoint
@@ -254,7 +273,6 @@ final class ExcavationMap
             $j = 0;
             $inTrench = false;
             $rowTotal = 0;
-            $horizontalIndex = 0;
             foreach ($this->verticalVertices as $verticalVertex) {
                 if (!$verticalVertex->intersectsVertical($i)) {
                     continue;
@@ -266,8 +284,10 @@ final class ExcavationMap
                 }
                 if ($inTrench) {
                     $this->logger?->log("In trench, moving $moved");
-                    for ($a = 1; $a < $moved; $a++) {
-                        $this->getPointAt($i, $j + $a)->isInside = true;
+                    if ($this->visualise) {
+                        for ($a = 1; $a < $moved; $a++) {
+                            $this->getPointAt($i, $j + $a)->isInside = true;
+                        }
                     }
                     $rowTotal += $moved - 1;
                 }
@@ -304,12 +324,13 @@ final class ExcavationMap
             $total += $rowTotal;
         }
 
-        echo json_encode($enclosedByRow);
-
         return $total;
     }
 
     public function markVertexExcavated(Vertex $vertex): void {
+        if (!$this->visualise) {
+            return;
+        }
         $point = $vertex->startPoint;
         $mapPoint = $this->getPointAt(...$point);
         $mapPoint->excavationDirection = $mapPoint->excavationDirection ?: $vertex->direction;
@@ -320,30 +341,6 @@ final class ExcavationMap
             $mapPoint->isExcavated = true;
             $mapPoint->excavationDirection = $vertex->direction;
         }
-    }
-
-    public function getPoolSize(): int
-    {
-        $total = 0;
-        foreach ($this->points as $row) {
-            foreach ($row as $point) {
-                if ($point->isExcavated || $point->isInside) {
-                    $total += 1;
-                }
-            }
-        }
-
-        return $total;
-    }
-
-    public function getOutlineDiagram(): string
-    {
-        $output = '';
-        foreach ($this->points as $row) {
-            $output .= implode('', $row) . "\n";
-        }
-
-        return $output;
     }
 
     public function getPoolDiagram(): string

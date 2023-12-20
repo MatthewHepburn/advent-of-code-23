@@ -11,16 +11,17 @@ require_once __DIR__ . '/../../common/php/autoload.php';
 $logger = new Logger();
 
 $steps = getSteps();
-$mapSpec = getMapSpec($steps);
+$correctedSteps = array_map(fn(PlanStep $s) => $s->getCorrected(), $steps);
+foreach ($correctedSteps as $correctedStep) {
+    $logger->log((string) $correctedStep);
+}
+$mapSpec = getMapSpec($correctedSteps);
 
 $logger->log("MapSpec = $mapSpec");
-$map = new ExcavationMap($mapSpec, true);
+$map = new ExcavationMap($mapSpec, false);
 $map->logger = $logger;
-$map->followPlan($steps);
+$map->followPlan($correctedSteps);
 
 $total = $map->markInner();
-
-$logger->log("After Digging:");
-$logger->log($map->getPoolDiagram());
 
 echo $total . "\n";
