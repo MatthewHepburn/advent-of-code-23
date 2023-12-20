@@ -62,6 +62,8 @@ final readonly class PlanStep
 final class Vertex {
     public ?Direction $lastDirection = null;
     public ?Direction $nextDirection = null;
+    public ?Vertex $lastVertex = null;
+    public ?Vertex $nextVertex = null;
     public readonly array $endPoint;
 
     public function __construct(
@@ -70,6 +72,23 @@ final class Vertex {
         public readonly int $length
     ) {
         $this->endPoint = $this->direction->moveInDirection($this->startPoint[0], $this->startPoint[1],  $this->length);
+    }
+
+    public function extendsToRight(int $i, int $j): bool
+    {
+        return $this->endPoint[1] > $j || $this->startPoint[1] > $j;
+    }
+
+    public function getAdjoiningVertex(int $i, int $j): ?self
+    {
+        if ($i === $this->startPoint[0] && $j === $this->startPoint[1]) {
+            return $this->lastVertex;
+        }
+        if ($i === $this->endPoint[0] && $j === $this->endPoint[1]) {
+            return $this->nextVertex;
+        }
+
+        return null;
     }
 
     public function intersectsVertical(int $i): bool
@@ -83,12 +102,12 @@ final class Vertex {
 
     public function isProtrusion(): bool
     {
-        if (!$this->lastDirection || !$this->nextDirection) {
-            throw new \Exception("Missing direction from Vertex");
+        if (!$this->lastVertex || !$this->nextVertex) {
+            throw new \Exception("Missing connections from Vertex");
         }
 
         // If we entered going up and exited going down, we're a protrusion
-        return $this->lastDirection !== $this->nextDirection;
+        return $this->lastVertex->direction !== $this->nextVertex->direction;
     }
 
     public function isVertical(): bool
@@ -108,6 +127,7 @@ final class MapPoint
 {
     public bool $isInside = false;
     public bool $isExcavated = false;
+    public ?Direction $excavationDirection = null;
 
     public function __toString(): string
     {
@@ -118,6 +138,14 @@ final class MapPoint
     {
         if ($this->isInside && $this->isExcavated) {
             return '!';
+        }
+        if ($this->excavationDirection) {
+            return match ($this->excavationDirection) {
+                Direction::Up => '^',
+                Direction::Down => 'v',
+                Direction::Left => '<',
+                Direction::Right => '>'
+            };
         }
         if ($this->isExcavated) {
             return '#';
@@ -179,11 +207,13 @@ final class ExcavationMap
 
             if ($lastDirection) {
                 $vertex->lastDirection = $lastDirection;
+                $vertex->lastVertex = $lastVertex;
             } else {
                 $firstVertex = $vertex;
             }
             if ($lastVertex) {
                 $lastVertex->nextDirection = $step->direction;
+                $lastVertex->nextVertex = $vertex;
             }
 
             $lastDirection = $step->direction;
@@ -197,7 +227,9 @@ final class ExcavationMap
             $this->logger?->log("Line: $vertex");
         }
         $firstVertex->lastDirection = $step->direction;
+        $firstVertex->lastVertex = $lastVertex;
         $lastVertex->nextDirection = $firstVertex->direction;
+        $lastVertex->nextVertex = $firstVertex;
 
         usort($this->verticalVertices, fn(Vertex $a, Vertex $b) => $a->startPoint[1] <=> $b->startPoint[1]);
         usort($this->horizontalVertices, fn(Vertex $a, Vertex $b) => $a->startPoint[0] <=> $b->startPoint[0]);
@@ -243,26 +275,22 @@ final class ExcavationMap
 
                 $this->logger?->log("    ->Intersected with vertical line $verticalVertex, now at ($i, $j). RowTotal = $rowTotal");
 
-                // Have we hit a corner?
-                for (; $horizontalIndex < count($this->horizontalVertices); $horizontalIndex++) {
-                    $horizontalVertex = $this->horizontalVertices[$horizontalIndex];
-                    if ($horizontalVertex->pointConnectsTo($i, $j)) {
-                        $this->logger?->log("Point ($i, $j) lies on horizontal line $horizontalVertex");
+                $horizontalVertex = $verticalVertex->getAdjoiningVertex($i, $j);
+                if ($horizontalVertex && $horizontalVertex->extendsToRight($i, $j)) {
+                    $this->logger?->log("Point ($i, $j) lies on horizontal line $horizontalVertex");
 
-                        // Follow the vertex along to the right
-                        $rightEnd = max($horizontalVertex->endPoint[1], $horizontalVertex->startPoint[1]);
-                        $moved = $rightEnd - $j;
-                        if ($moved === 0) {
-                            continue;
-                        }
-                        $j = $rightEnd;
-                        $this->logger?->log("Hit corner, followed line $moved to ($i, $j)");
-                        if (!$horizontalVertex->isProtrusion()) {
-                            $this->logger?->log("  NOT protrusion, changing trench state. RowTotal = $rowTotal");
-                            $inTrench = !$inTrench;
-                        }
+                    // Follow the vertex along to the right
+                    $rightEnd = max($horizontalVertex->endPoint[1], $horizontalVertex->startPoint[1]);
+                    $moved = $rightEnd - $j;
+                    $j = $rightEnd;
+                    $this->logger?->log("Hit corner, followed line $moved to ($i, $j)");
+                    if (!$horizontalVertex->isProtrusion()) {
+                        $this->logger?->log("  NOT protrusion, changing trench state. RowTotal = $rowTotal");
+                        $inTrench = !$inTrench;
+                        continue;
+                    } else {
                         $this->logger?->log("  was protrusion, not changing trench state. RowTotal = $rowTotal");
-                        continue 2;
+                        continue;
                     }
                 }
 
@@ -283,10 +311,14 @@ final class ExcavationMap
 
     public function markVertexExcavated(Vertex $vertex): void {
         $point = $vertex->startPoint;
-        $this->getPointAt(...$point)->isExcavated = true;
+        $mapPoint = $this->getPointAt(...$point);
+        $mapPoint->excavationDirection = $mapPoint->excavationDirection ?: $vertex->direction;
+        $mapPoint->isExcavated = true;
         for ($i = 0; $i < $vertex->length; $i++) {
             $point = $vertex->direction->stepInDirection(...$point);
-            $this->getPointAt(...$point)->isExcavated = true;
+            $mapPoint = $this->getPointAt(...$point);
+            $mapPoint->isExcavated = true;
+            $mapPoint->excavationDirection = $vertex->direction;
         }
     }
 
