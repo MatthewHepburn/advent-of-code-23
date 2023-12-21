@@ -64,7 +64,7 @@ class PartConstraint
         if ($this->minA > $this->maxA) {
             return false;
         }
-        if ($this->minS > $this->maxX) {
+        if ($this->minS > $this->maxS) {
             return false;
         }
 
@@ -163,10 +163,3 @@ $logger->log($acceptedScore . " for part A problem");
 echo $totalCombinations . "\n";
 
 
-/**
- * TODO: Handle case like
- * Path: in{s<1351:px,qqz} -> qqz{s>2770:qs,m<1801:hdj,R} -> qs{s>3448:A,lnx} -> lnx{m>1548:A,A}
- * Constraints: 1 <= x <= 4000, 1548 <= m <= 4000, 1 <= a <= 4000, 2770 <= s <= 3449 => 26625210400908 combinations
- *
- * where a workflow has multiple paths to a target
- */
