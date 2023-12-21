@@ -67,6 +67,11 @@ final readonly class Rule
 
         return new self($this->property, $condition, $threshold, '?');
     }
+
+    public function __toString(): string
+    {
+        return "({$this->property->value} {$this->condition->value} {$this->threshold}: $this->target)";
+    }
 }
 final readonly class Workflow
 {
@@ -97,6 +102,31 @@ final readonly class Workflow
         $rules = array_map(fn(string $s) => Rule::fromString($s), $parts);
 
         return new self($label, $rules, $default, $line);
+    }
+
+    /**
+     * @return PathNode[]
+     */
+    public function getConnectingNodes(): array
+    {
+        $output = [];
+        for ($i = 0; $i <= count($this->rules); $i++) {
+            $rules = [];
+            for ($j = 0; $j < $i; $j++) {
+                $rules[]= $this->rules[$j]->negate();
+            }
+            $rules[]=$this->rules[$i] ?? $this->rules[$i -1]->negate();
+            $lastRuleTarget = $rules[count($rules) -1]->target;
+            $target = $lastRuleTarget === '?' ? $this->defaultTarget : $lastRuleTarget;
+            $output[]= new PathNode($rules, $target);
+        }
+
+        // Check our logic:
+        if (count($output) !== count($this->rules) + 1) {
+            throw new \Exception('Bad logic!');
+        }
+
+        return $output;
     }
 
     /**
@@ -189,6 +219,22 @@ final readonly class Problem
      * @param Part[] $parts
      */
     public function __construct(public array $workflows, public array $parts) {}
+}
+
+final readonly class PathNode {
+    /**
+     * @param Rule[] $rulesToFulfill
+     * @param string $target
+     */
+    public function __construct(
+        public array $rulesToFulfill,
+        public string $target
+    ) {}
+
+    public function __toString(): string
+    {
+        return implode(' -> ', $this->rulesToFulfill) . " ==> $this->target";
+    }
 }
 
 function getProblem(): Problem
