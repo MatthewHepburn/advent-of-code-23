@@ -51,6 +51,22 @@ final readonly class Rule
 
         return new self($property, $condition, (int) $threshold, $target);
     }
+
+    public function negate(): self
+    {
+        $condition = match ($this->condition) {
+            Condition::GT => Condition::LT,
+            Condition::LT => Condition::GT,
+        };
+        // Adjust threshold by one since we're avoiding GTE / LTE
+        if ($this->condition === Condition::LT) {
+            $threshold = $this->threshold - 1;
+        } else {
+            $threshold = $this->threshold + 1;
+        }
+
+        return new self($this->property, $condition, $threshold, '?');
+    }
 }
 final readonly class Workflow
 {
@@ -59,7 +75,7 @@ final readonly class Workflow
      * @param Rule[] $rules
      * @param string $defaultTarget
      */
-    public function __construct(public string $label, private array $rules, private string $defaultTarget) {}
+    public function __construct(public string $label, private array $rules, private string $defaultTarget, private string $line) {}
 
     public function evaluateFor(Part $part): string
     {
@@ -80,7 +96,52 @@ final readonly class Workflow
         $default = array_pop($parts);
         $rules = array_map(fn(string $s) => Rule::fromString($s), $parts);
 
-        return new self($label, $rules, $default);
+        return new self($label, $rules, $default, $line);
+    }
+
+    /**
+     * @param string $target
+     *
+     * @return Rule[];
+     */
+    public function getRulesForTarget(string $target): array
+    {
+        $rules = [];
+        foreach ($this->rules as $rule) {
+            if ($rule->target === $target) {
+                // Easy, we need this rule to hold
+                $rules[]= $rule;
+                return $rules;
+            }
+            // Otherwise, we need it not to hold so that we get to the next rule
+            $rules[]= $rule->negate();
+        }
+
+        // All rules exhausted, lets check our logic:
+        if ($target !== $this->defaultTarget) {
+            throw new \Exception("Could not find rules for target $target in workflow {$this}");
+        }
+
+        return $rules;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getTargets(): array
+    {
+        $output = [];
+        foreach ($this->rules as $rule) {
+            $output[$rule->target] = true;
+        }
+        $output[$this->defaultTarget] = true;
+
+        return array_keys($output);
+    }
+
+    public function __toString(): string
+    {
+        return $this->line;
     }
 }
 
